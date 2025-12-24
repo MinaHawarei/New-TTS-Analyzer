@@ -5,6 +5,7 @@ import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type NavItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
+import { HandleAction } from "@/components/ui/handle-action-modal";
 import { useState } from 'react';
 import {
     Play,
@@ -15,7 +16,8 @@ import {
     History,
     ShieldAlert,
     Info,
-    CheckCircle2
+    CheckCircle2,
+    Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,7 +57,7 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
     };
     const isFormInvalid =
         errors.tktID || errors.inputText || errors.selectPackage;
-    // دالة فتح نافذة الـ Logs الخارجية
+
     const openTicketLogs = () => {
         if (!data.tktID) return alert('Please enter Ticket ID first!');
         const url = `http://tts/new/index.php/logs/core_log/get_all_ticket_logs?ticket_id=${data.tktID}`;
@@ -77,8 +79,14 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
         .finally(() => {
             setIsLoading(false);
         });
-};
+    };
+    const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+    const [selectedMobileData, setSelectedMobileData] = useState<any>(null);
 
+    const handleOpenModal = (weMobileData: any) => {
+        setSelectedMobileData(weMobileData);
+        setIsActionModalOpen(true);
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -211,37 +219,51 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
                                         <CompactResultRow label="To" value={analysisData.closeDate} />
                                     </div>
 
-                                    {/* SLA Status & Technical IDs */}
-                                    <div className="flex items-stretch bg-primary/5 rounded-md border border-primary/10 overflow-hidden min-h-[4.5rem]">
-                                        <div className="flex-1 px-4 flex flex-col justify-center min-w-0">
-                                            <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest leading-none mb-1">
-                                                Final SLA Status
-                                            </span>
-                                            <span className="text-base font-black leading-tight" style={{ color: analysisData.slaStatus_color }}>
-                                                {analysisData.slaStatus}
-                                            </span>
+                                    {/* SLA Status, SLA Value & Technical IDs */}
+                                    <div className="flex flex-col md:flex-row items-stretch bg-primary/5 rounded-md border border-primary/10 overflow-hidden min-h-[4.5rem]">
+
+                                        {/* حاوية الـ SLA: تتقسم داخلياً إذا وجد المحتويين */}
+                                        <div className="flex flex-1 min-w-0">
+
+                                            {/* الجزء الأول: SLA Status */}
+                                            <div className="flex-1 px-4 py-3 flex flex-col justify-center min-w-0 border-r border-primary/5">
+                                                <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest leading-none mb-1.5">
+                                                    SLA Status
+                                                </span>
+                                                <span className="text-base font-black leading-tight break-words" style={{ color: analysisData.slaStatus_color }}>
+                                                    <div dangerouslySetInnerHTML={{ __html: analysisData.slaStatus }} />
+                                                </span>
+                                            </div>
+
+                                            {/* الجزء الثاني: الـ SLA (يظهر فقط إذا لم يكن null) */}
+                                            {analysisData.sla && (
+                                                <div className="flex-1 px-4 py-3 flex flex-col justify-center min-w-0 border-l border-primary/10 bg-primary/[0.02]">
+                                                    <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest leading-none mb-1.5">
+                                                        SLA
+                                                    </span>
+                                                    <span className="text-base font-bold text-foreground/80 leading-tight">
+                                                        <div dangerouslySetInnerHTML={{ __html: analysisData.sla }} />
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        <div className="flex shrink-0 items-center bg-primary/10 px-4 gap-4 border-l border-primary/20">
+                                        {/* قسم المعرفات التقنية (الجانب الأيمن) */}
+                                        <div className="flex flex-wrap shrink-0 items-center bg-primary/10 px-4 py-2 gap-4 border-t md:border-t-0 md:border-l border-primary/20">
                                             {analysisData.delayId && <CompactResultRow label="Delay" value={analysisData.delayId} transparent />}
-                                            {analysisData.reassignId && (
-                                                <div className="flex items-center gap-4 h-full">
-                                                    <div className="h-6 w-[1.5px] bg-primary/20" />
-                                                    <CompactResultRow label="Re-Assign" value={analysisData.reassignId} transparent />
-                                                </div>
-                                            )}
-                                            {analysisData.accelerationId && (
-                                                <div className="flex items-center gap-4 h-full">
-                                                    <div className="h-6 w-[1.5px] bg-primary/20" />
-                                                    <CompactResultRow label="Acceleration" value={analysisData.accelerationId} transparent />
-                                                </div>
-                                            )}
-                                            {analysisData.reworkId && (
-                                                <div className="flex items-center gap-4 h-full">
-                                                    <div className="h-6 w-[1.5px] bg-primary/20" />
-                                                    <CompactResultRow label="Re-Work" value={analysisData.reworkId} transparent />
-                                                </div>
-                                            )}
+
+                                            {[
+                                                { id: analysisData.reassignId, label: "Re-Assign" },
+                                                { id: analysisData.accelerationId, label: "Acceleration" },
+                                                { id: analysisData.reworkId, label: "Re-Work" }
+                                            ].map((item, index) => (
+                                                item.id && (
+                                                    <div key={index} className="flex items-center gap-4 h-full">
+                                                        <div className="hidden md:block h-6 w-[1.5px] bg-primary/20" />
+                                                        <CompactResultRow label={item.label} value={item.id} transparent />
+                                                    </div>
+                                                )
+                                            ))}
                                         </div>
                                     </div>
 
@@ -254,11 +276,18 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
                                                     Show Escalation History
                                                 </div>
                                             </AccordionTrigger>
-                                            <AccordionContent className="mt-2 p-0 bg-slate-950 rounded-md overflow-y-auto shadow-inner border border-white/5">
+                                            <AccordionContent
+                                                className="mt-2 p-0 rounded-md overflow-y-auto shadow-inner border
+                                                    bg-white border-gray-200
+                                                    dark:bg-slate-950 dark:border-white/5"
+                                                >
                                                 <div className="flex flex-col">
                                                     {Array.isArray(analysisData.esclationHistory) ? (
                                                         analysisData.esclationHistory.map((item: any, index: number) => (
-                                                            <div key={index} className="p-3 border-b border-white/5 last:border-none hover:bg-white/[0.03] transition-colors group">
+                                                            <div key={index}
+                                                                className="p-3 border-b last:border-none transition-colors group
+                                                                    border-gray-200 hover:bg-gray-50
+                                                                    dark:border-white/5 dark:hover:bg-white/[0.03]">
                                                                 <div className="flex justify-between items-center mb-1.5">
                                                                     <span className="text-blue-400 font-bold text-[12px] flex items-center gap-2">
                                                                         <span className="w-1 h-1 rounded-full bg-blue-400 group-hover:scale-150 transition-transform" />
@@ -266,18 +295,36 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
                                                                     </span>
                                                                     <span className="text-[9px] text-slate-500 font-mono font-bold uppercase tracking-widest">Step {index + 1}</span>
                                                                 </div>
-                                                                <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-mono">
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <span className="text-slate-500 text-[10px] uppercase font-bold">From</span>
-                                                                        <span className="text-slate-300 bg-white/5 px-1.5 py-0.5 rounded">{item.from}</span>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <span className="text-slate-500 text-[10px] uppercase font-bold">To</span>
-                                                                        <span className={`px-1.5 py-0.5 rounded ${item.to.includes('Now') ? 'text-green-400 bg-green-400/10 animate-pulse font-bold' : 'text-slate-300 bg-white/5'}`}>
-                                                                            {item.to}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
+
+<div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-mono">
+  {/* From */}
+  <div className="flex items-center gap-1.5">
+    <span className="text-gray-500 text-[10px] uppercase font-bold dark:text-slate-500">
+      From
+    </span>
+    <span className="text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded
+      dark:text-slate-300 dark:bg-white/5">
+      {item.from}
+    </span>
+  </div>
+
+  {/* To */}
+  <div className="flex items-center gap-1.5">
+    <span className="text-gray-500 text-[10px] uppercase font-bold dark:text-slate-500">
+      To
+    </span>
+    <span
+      className={`px-1.5 py-0.5 rounded ${
+        item.to.includes('Now')
+          ? 'text-green-600 bg-green-100 animate-pulse font-bold dark:text-green-400 dark:bg-green-400/10'
+          : 'text-gray-700 bg-gray-100 dark:text-slate-300 dark:bg-white/5'
+      }`}
+    >
+      {item.to}
+    </span>
+  </div>
+</div>
+
                                                                 {item.reason && (
                                                                     <div className="mt-2.5 py-2 px-3 bg-red-500/10 border-l-2 border-red-500 rounded-r-sm">
                                                                         <p className="text-red-400 text-[11px] font-bold leading-relaxed italic">
@@ -318,21 +365,26 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
                         <Card className="border-blue-200 dark:border-blue-900/30">
                             <CardHeader className="py-3 px-4 bg-blue-50 dark:bg-blue-950/20">
                                 <CardTitle className="text-sm text-blue-600 flex items-center gap-2">
-                                    <Info className="w-4 h-4" /> Adjustment Details
+                                    <Info className="w-4 h-4" /> Mobile Adjustment Details
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="p-4 text-sm">
-                                <div dangerouslySetInnerHTML={{ __html: analysisData?.weMobileMessage || "No adjustment info available." }} />
-                            </CardContent>
+                                <CardContent className="p-4 text-sm">
+                                    {renderWeMobileContent(analysisData?.weMobile, handleOpenModal)}
+                                </CardContent>
                         </Card>
                     </div>
                 </div>
             </div>
+            <HandleAction
+               isOpen={isActionModalOpen}
+                setIsOpen={setIsActionModalOpen}
+                data={analysisData?.available_actions || []}
+                ticketId={data.tktID}
+            />
         </AppLayout>
     );
 }
 
-// --- Components المحدثة لدعم HTML ---
 
 function CompactResultRow({ label, value, color, bold, isBadge, className }: any) {
     const isHtml = (str: any) => /<[a-z][\s\S]*>/i.test(str);
@@ -379,3 +431,73 @@ function ResultRow({ label, value, color, bold, isBadge }: any) {
         </div>
     );
 }
+// دالة لعرض محتوى We Mobile بناءً على الشروط
+const renderWeMobileContent = (data: any, handleOpenModal: (data: any) => void) => {
+    // 1. حالة عدم وجود بيانات أو تحميل
+    if (!data) return "No adjustment info available.";
+
+    // 2. إذا كان غير صالح (Valid = false) -> اعرض الرسالة فقط
+    if (data.valid === false) {
+        return (
+            <div
+                className="text-red-500 font-medium"
+                dangerouslySetInnerHTML={{ __html: data.message }}
+            />
+        );
+    }
+
+    // 3. إذا كان صالح (Valid = true) -> اعرض التفاصيل وزر الأكشن
+    return (
+        <div className="space-y-4">
+            {/* عرض الرسالة العلوية (Instructions) */}
+            <div className="text-xs text-muted-foreground bg-blue-50/50 p-2 rounded border border-blue-100 dark:border-blue-900/50 dark:bg-blue-900/20">
+                <div dangerouslySetInnerHTML={{ __html: data.message }} />
+            </div>
+
+            {/* عرض البيانات غير الفارغة فقط (Mapping non-null elements) */}
+            <div className="grid grid-cols-2 gap-3">
+                {data.quota && (
+                    <CompactResultRow
+                        label="MBB Quota"
+                        value={`${data.quota} GB`}
+                        bold
+                        color="oklch(0.6 0.18 145)" // لون أخضر
+                    />
+                )}
+
+                {data.expireDays && (
+                    <CompactResultRow
+                        label="Validity"
+                        value={`${data.expireDays} Days`}
+                    />
+                )}
+
+                {data.Handled_By && (
+                    <CompactResultRow label="Assigned To" value={data.Handled_By} />
+                )}
+
+
+                {data.bss_service_code ? (
+                <CompactResultRow label="bss service code" value={data.bss_service_code} />
+                ) : (
+                <CompactResultRow label="SLA" value={data.sla} />
+                )}
+
+            </div>
+
+            {data.sr_id && (
+                <Button
+                    onClick={() => handleOpenModal(data)}
+                    className="w-full h-10 text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white
+                            shadow-[0_4px_14px_0_rgba(16,185,129,0.39)]
+                            transition-all duration-300 ease-in-out
+                            hover:scale-[1.01] active:scale-[0.98]
+                            flex items-center justify-center gap-2 group"
+                >
+                    <Zap className="w-4 h-4 fill-current group-hover:animate-pulse" />
+                    Take an Action
+                </Button>
+            )}
+        </div>
+    );
+};

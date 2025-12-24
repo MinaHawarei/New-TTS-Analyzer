@@ -25,7 +25,11 @@ class AnalyzeController extends Controller
         $mainpackage = FindPackage::getPackageById($selectedName);
 
         $tkt_id = $request->input('tktID');
-
+        $weMobileValidation = false ;
+        $weMobileMessage = '' ;
+        $weMobile_Handled_By = null ;
+        $weMobile_sr_id = null ;
+        $bss_service_code = 1256583058;
 
         $validationReason = $orgData[0]->reason;
         $problemType = $orgData[0]->ticketTitle;
@@ -105,9 +109,11 @@ class AnalyzeController extends Controller
             $actionMessage = 'inform customer that his case is in progress and he will be notified once system finalize his case as soon as possible.<br><h3>Follow up with CST After 1 Hr</h3>';
             //$slaStatus = '';
             $sla = 'as per bellow';
+            $weMobileValidation = false ;
             $weMobileMessage = '<strong  style="color: red;">Not Eligible for WE Mobile Compensation as per Support Pool</strong>';
         } elseif($curuantSupportPool === 'SLS-IVR Automation'){
             $sla = 'as per bellow';
+            $weMobileValidation = false ;
             $weMobileMessage = '<strong  style="color: red;">Not Eligible for WE Mobile Compensation as per Support Pool</strong>';
             $actionMessage = 'Handle customer technical problem normally (Logical or physical) according to customer input and automation ticket update.';
         }
@@ -123,7 +129,7 @@ class AnalyzeController extends Controller
         ];
 
         if (in_array($curuantSupportPool, $supportPools) && $validation['slaStatus'] != 'Closed' &&  $validation['outageTKT'] == false ) {
-           if($actionMessage == '</u>in progress . . .'){
+           if($actionMessage == 'in progress . . .'){
                 $actionMessage ='';
            }
            if($actionMessage !=''){
@@ -136,13 +142,14 @@ class AnalyzeController extends Controller
                 $actionMessage = '<br><strong  style="color: yellow;">withdraw the Ticket and Handle according 3rd Level update If Exist : <br></strong><br>' . $actionMessage ;
 
            }
+            $weMobileValidation = false ;
             $weMobileMessage = '<strong  style="color: red;">Not Eligible for WE Mobile Compensation as per Support Pool</strong>';
             $slaStatus = 'Handle as Per WIKI (According Current Pool)';
-            $sla = '';
+            $sla = null;
             $slaStatus_color = 'orange';
         } else {
             if($sla != 'as per bellow' && $curuantSupportPool != 'CC-Follow up' && $curuantSupportPool != 'Second Level Advanced'){
-                $actionMessage = $actionMessage . $DelayMessage .'<br> Inform cst SLA : <mark>' . $sla . '</mark>' ;
+                $actionMessage = $actionMessage . $DelayMessage .'<br> Inform cst SLA ' ;
             }elseif($curuantSupportPool == 'CC-Follow up'){
                 $actionMessage = '<strong  style="color: yellow;">Handle according 3rd Level update If Exist :</strong><br>'.$actionMessage ;
             }else{
@@ -150,8 +157,8 @@ class AnalyzeController extends Controller
             }
 
         }
-        if($validation['slaStatus'] != 'Closed' && $sla !=''){
-            $slaStatus = $slaStatus .'<strong style="color: yellow;"></br> (' . $sla . ')</strong>';
+        if($validation['slaStatus'] != 'Closed' && $sla != null){
+            //$slaStatus = $slaStatus .'<strong style="color: yellow;"></br> (' . $sla . ')</strong>';
         }
 
         if($transferToCount >1 ){
@@ -162,6 +169,7 @@ class AnalyzeController extends Controller
         if($curuantSupportPool == 'CC-Follow up'){
             $slaStatus = 'Handle as per wiki';
             $slaStatus_color = 'red';
+            $weMobileValidation = false ;
             $weMobileMessage = '<strong  style="color: red;">Not Eligible for WE Mobile Compensation as per Support Pool</strong>';
 
         }
@@ -178,9 +186,10 @@ class AnalyzeController extends Controller
             $actionMessage = 'Handle case normally <br> If customer ask about a visit for a reason out of the normal process Inform Customer that he will receive a call to handle his/her request [with no specific SLA]
             Create a ticket on <a href="http://ireport/special-customer" target="_blank" style="color:#b28df7; text-decoration:underline;">special customer IR</a>
             under VIP type and mention in TTS.';
+            $weMobileValidation = false ;
             $weMobileMessage = '<strong  style="color: red;">Not Eligible for WE Mobile Compensation as per Support Pool</strong>';
             $slaStatus = 'Handle as Per WIKI (According Current Pool)';
-            $sla = '';
+            $sla = null;
             $slaStatus_color = 'orange';
         }
 
@@ -228,12 +237,18 @@ class AnalyzeController extends Controller
             $actionMessage .= '<br>for more details check <a href="https://sp-wiki.te.eg:5443/Pages/fbb/Common/Tools/TTS.aspx#Currently_Withdrawing_Tts_Ticket_From_These_Teams_Is_Not_Available" target="_blank" style="color:#b28df7; text-decoration:underline;">WIKI</a>';
         }
         if($weMobilecompansationQouta >= 3){
-            $weMobileMessage = "<br>offer we mobile compensation <strong style='color: red;'>if not added before</strong><br>we mobile wil be <br> MBB Quota : <strong style='color: green;'>".$weMobilecompansationQouta.'</strong> GB <br> Validity :  '.$weMobilecompansationExpireDays.' Days <br> Handled By : FL Agent</strong>';
+            $weMobileValidation = true ;
+            $weMobile_Handled_By = 'FL Agent'  ;
+            $weMobile_sr_id = null ;
+            //$weMobileMessage = "<br>offer we mobile compensation <strong style='color: red;'>if not added before</strong><br>we mobile wil be <br> MBB Quota : <strong style='color: green;'>".$weMobilecompansationQouta.'</strong> GB <br> Validity :  '.$weMobilecompansationExpireDays.' Days <br> Handled By : FL Agent</strong>';
 
 
             if($weMobilecompansationQouta >= 10){
-                $weMobileMessage = "<br>offer we mobile compensation <strong style='color: red;'>if not added before</strong><br> MBB Quota : <strong style='color: green;'>".$weMobilecompansationQouta.'</strong> GB <br> Validity :  '.$weMobilecompansationExpireDays.' Days <br> Handled By : CLM Tier Team <br> SLA : 15 Min';
-                $weMobileMessage .= '<div><button id="openModalButtonGB" style="background-color: rgba(20, 197, 0, 0.486) !important; margin-left: 10px; min-width: 150px;" class="mt-4 text-white p-2 rounded-lg hover:bg-green-700 transition duration-300 ease-in-out transform hover:scale-105">Take an Action</button>';
+                $weMobile_Handled_By = 'CLM Tier Team'  ;
+                $bss_service_code =null;
+                $weMobile_sr_id = 101024018 ;
+                //$weMobileMessage = "<br>offer we mobile compensation <strong style='color: red;'>if not added before</strong><br> MBB Quota : <strong style='color: green;'>".$weMobilecompansationQouta.'</strong> GB <br> Validity :  '.$weMobilecompansationExpireDays.' Days <br> Handled By : CLM Tier Team <br> SLA : 15 Min';
+                //$weMobileMessage .= '<div><button id="openModalButtonGB" style="background-color: rgba(20, 197, 0, 0.486) !important; margin-left: 10px; min-width: 150px;" class="mt-4 text-white p-2 rounded-lg hover:bg-green-700 transition duration-300 ease-in-out transform hover:scale-105">Take an Action</button>';
             }
 
         }
@@ -252,7 +267,13 @@ class AnalyzeController extends Controller
         }
         if($validation['slaStatus'] == 'Closed'){
             $actionMessage = 'Ticket is closed';
+            $weMobileValidation = false ;
+            $weMobile_Handled_By = null;
+            $weMobile_sr_id = null ;
             $weMobileMessage = "<strong style='color: red;'>not eligible for we mobile compensation .. Ticket is closed</strong>";
+        }
+        if($weMobilecompansationQouta == 0){
+            $weMobileValidation = false ;
         }
 
 
@@ -315,6 +336,34 @@ class AnalyzeController extends Controller
             default:
                 break;
         }
+
+
+        $weMobile = [
+            'valid' => $weMobileValidation,
+            'message' => $weMobileMessage,
+            'quota' => $weMobilecompansationQouta,
+            'expireDays' => $weMobilecompansationExpireDays,
+            'Handled_By' => $weMobile_Handled_By,
+            'sr_id' => $weMobile_sr_id,
+            'sr_name' => "We Mobile Adjustment",
+            'bss_service_code' => $bss_service_code,
+            'sla' => '15 Minutes',
+        ];
+
+        $available_actions = [
+            [
+                'type' => 'We Mobile Aproval',
+                'lable' => 'TT for CLM Team',
+                'sr_type' => 'TT',
+                'sr_id' => '101024018',
+                'sr_name' => 'We Mobile Adjustment',
+                'sla' => '15 Minutes',
+                'quota' => $weMobilecompansationQouta,
+                'amount' => null,
+                'expireDays' => $weMobilecompansationExpireDays,
+            ]
+        ];
+
         $accelerationId = null;
         return response()->json([
 
@@ -328,6 +377,7 @@ class AnalyzeController extends Controller
             'startDate' => $startDate,
             'closeDate' => $closeDate,
             'esclationHistory' => $esclationHistory,
+            'sla' => $sla,
             'slaStatus' => $slaStatus,
             'slaStatus_color' => $slaStatus_color,
             'actionMessage' => $actionMessage,
@@ -335,10 +385,9 @@ class AnalyzeController extends Controller
             'reworkId' => $reworkId,
             'reassignId' => $reassignId,
             'accelerationId' => $accelerationId,
-            'weMobileMessage' => $weMobileMessage,
+            'weMobile' => $weMobile,
             'curuantStatus' => $curuantStatus,
-            'weMobilecompansationQouta' => $weMobilecompansationQouta,
-            'weMobilecompansationExpireDays' => $weMobilecompansationExpireDays,
+            'available_actions' => $available_actions,
         ]);
     }
 

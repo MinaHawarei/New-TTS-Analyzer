@@ -50,7 +50,9 @@ class Validation
         if (empty($orgData)) {
             return ['validation' => false, 'reason' => 'No data available'];
         }
-        $weMobileMessage = "<strong style='color: red;'>not eligible for we mobile compensation</strong>";        //$orgData = DataReview::EscalationDataReview($orgData);
+
+        //$weMobileMessage = "<strong style='color: red;'>not eligible for we mobile compensation</strong>";
+        $weMobileMessage = "not eligible for we mobile compensation";
         $MajorFaultCodes = [20,81,82,102];
         $ticket_close_time = '';
         $ticket_close_time = $orgData[0]->ticket_close_time;
@@ -268,6 +270,7 @@ class Validation
         $duration_from_majorFault = 0;
         $weMobilecompansationQouta = 0;
         $weMobilecompansationExpireDays = 0;
+        $weMobileValidation = false ;
 
         //TT Not Closed
         if ($lastEscalation->transfer_time == null && $orgData[0]->ticket_close_time == null) {
@@ -499,7 +502,7 @@ class Validation
             }
             $transfer_time_to_history = Carbon::parse($item->transfer_time)->format('d-m, h:i A');
             if ($item->close_code == 'N/A' && $orgData[$i]->id == $item->id && $ticket_close_time == null) {
-                $close_time_to_history = 'Now . . . ';
+                $close_time_to_history = 'Now';
             } else {
                 $close_time_to_history = Carbon::parse($item->close_time)->format('d-m, h:i A');
             }
@@ -678,12 +681,25 @@ class Validation
 
 
             if ($needWeMobile == true) {
-                $weMobileMessage = "<br>offer we mobile compensation <strong style='color: red;'>if not added before</strong><br>we mobile wil be : <strong style='color: green;'>".$weMobilecompansationQouta.' GB for '.$weMobilecompansationExpireDays.' Days</strong>';
+                //$weMobileMessage = "<br>offer we mobile compensation <strong style='color: red;'>if not added before</strong><br>we mobile wil be : <strong style='color: green;'>".$weMobilecompansationQouta.' GB for '.$weMobilecompansationExpireDays.' Days</strong>';
+                $weMobileMessage = "offer we mobile compensation <strong style='color: red;'>if not added before</strong><br>we mobile wil be : <strong style='color: green;'>";
+                $weMobileValidation = true ;
+
+
             }
             if ($weMobilecompansationQouta == 0) {
+                //$weMobileMessage = "<strong style='color: red;'>not eligible for we mobile compensation</strong>";
                 $weMobileMessage = "<strong style='color: red;'>not eligible for we mobile compensation</strong>";
+                $weMobilecompansationQouta = 0;
+                $weMobilecompansationExpireDays = 0;
+                $weMobileValidation = false ;
+
             }elseif($weMobilecompansationQouta == 404){
                 $weMobileMessage = "<strong style='color: red;'>this package not supported yest <br> Please Handle it Manual</strong>";
+                $weMobilecompansationQouta = null;
+                $weMobilecompansationExpireDays = null;
+                $weMobileValidation = false ;
+
             }
             if ($lastEscalation->support_group == 'Pilot-Follow up' || $lastEscalation->support_group == 'Pilot - Follow up') {
                 $actionMessage = $actionMessage.'<br>Don’t with draw ticket and Wait for the SLA <br>(حد هيكلمك من الاقسام المختصة لمتابعة حل المشكلة)';
@@ -765,6 +781,9 @@ class Validation
             $slaToReadding = 'Cairo and Alexandria: 1 day.<br>Rest of Egypt : 5 Working days.';
             $sla = "Cairo&Alex: 1D .. Other 5WD";
             $weMobileMessage = "<strong style='color: red;'>not eligible for we mobile compensation</strong>";
+            $weMobilecompansationQouta = 0;
+            $weMobilecompansationExpireDays = 0;
+            $weMobileValidation = false ;
 
         }
          if($curuantSupportPool_all == 'Openetsec [Operation Network Security]' || $curuantSupportPool_all == 'OPNETSEC') {
@@ -776,6 +795,9 @@ class Validation
             $slaToReadding = 'Cairo and Alexandria: 1 day.<br>Rest of Egypt : 5 Working days.';
             $sla = "Cairo&Alex: 1D .. Other 5WD";
             $weMobileMessage = "<strong style='color: red;'>not eligible for we mobile compensation</strong>";
+            $weMobilecompansationQouta = 0;
+            $weMobilecompansationExpireDays = 0;
+            $weMobileValidation = false ;
 
         }
 
@@ -905,7 +927,7 @@ class Validation
         if($curuantSupportPool_all == 'Second Level Advanced'){
             if($status == 'visit schedule'){
                 $slaStatus = 'According Below';
-                $sla = '';
+                $sla = null;
                 $DelayMessage = '';
                 $actionMessage = 'inform customers to wait for feedback from the responsible team.';
             }elseif( $selectproblem == 'unsupported services' && $status == 'waiting for research'){
@@ -914,7 +936,7 @@ class Validation
                     $actionMessage = '';
                 }
                 $slaStatus = 'According Below';
-                $sla = '';
+                $sla = null;
                 $actionMessage = '<strong  style="color: yellow;">Handle according 3rd Level update If Exist :</strong><br>'.$actionMessage ;
                 $DelayMessage = '';
             }
@@ -943,9 +965,14 @@ class Validation
             $slaStatus = 'Closed';
             $reassign = false;
             $actionMessage = '';
-            $weMobileMessage = "<strong style='color: red;'>not eligible for we mobile compensation</strong>";
+            //$weMobileMessage = "<strong style='color: red;'>not eligible for we mobile compensation</strong>";
+            $weMobileMessage = "not eligible for we mobile compensation";
             $weMobilecompansationQouta = 0 ;
+            $weMobileValidation = false ;
+            $weMobilecompansationExpireDays = 0;
+
         }
+
         return [
             'totalDuration' => $totalDuration,
             'startDate' => $startDate,
