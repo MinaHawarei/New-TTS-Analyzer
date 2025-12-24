@@ -1,17 +1,41 @@
-import { Breadcrumbs } from '@/components/breadcrumbs';
-import { AnalysisSkeleton } from '@/components/analysis-skeleton';
 import FullScreenLoader from '@/components/full-screen-loader';
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type NavItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { HandleAction } from "@/components/ui/handle-action-modal";
+import { ErrorModal } from "@/components/ui/error-modal";
 import { useState } from 'react';
+
+const useErrorModal = () => {
+    const [error, setError] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        status: null as number | null // إضافة الـ status هنا
+    });
+
+    const handleError = (err: any) => {
+        const status = err.response?.status || null;
+        const message = err.response?.data?.message || err.message || 'An error occurred';
+
+        setError({
+            isOpen: true,
+            title: 'Error',
+            message,
+            status
+        });
+    };
+
+    const closeError = () => {
+        setError({ isOpen: false, title: '', message: '', status: null });
+    };
+
+    return { error, handleError, closeError };
+};
 import {
     Play,
-    RotateCcw,
     Ticket,
-    ExternalLink,
     Search,
     History,
     ShieldAlert,
@@ -25,7 +49,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import axios from 'axios';
 import { route } from 'ziggy-js';
 import {
@@ -40,9 +63,11 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'TTS Analyzer', href: '/tts-analyzer' },
 ];
 
+
 export default function TTSAnalyzer({ packages }: { packages: { id: number; name: string }[] }) {
     const [analysisData, setAnalysisData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const { error, handleError, closeError } = useErrorModal();
 
     // استخدام useForm من Inertia للتعامل مع البيانات والـ CSRF تلقائياً
     const { data, setData, post, processing, reset } = useForm({
@@ -64,22 +89,25 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
         window.open(url, 'TicketLogsPopup', 'width=800,height=600,resizable=yes,scrollbars=yes');
     };
 
-    // إرسال التحليل
+    const [errorModal, setErrorModal] = useState({ isOpen: false, message: "" });
+
     const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!data.inputText) return alert('item logs is required!');
+        e.preventDefault();
+        if (!data.inputText) return alert('item logs is required!');
 
-    setIsLoading(true);
-    setAnalysisData(null);
+        setIsLoading(true);
+        setAnalysisData(null);
 
-    axios.post(route('analyze.data'), data)
-        .then((response) => {
-            setAnalysisData(response.data);
-        })
-        .finally(() => {
-            setIsLoading(false);
-        });
+        axios.post(route('analyze.data'), data)
+            .then((response) => {
+                setAnalysisData(response.data);
+            })
+            .catch(handleError)
+            .finally(() => {
+                setIsLoading(false);
+            });
     };
+
     const [isActionModalOpen, setIsActionModalOpen] = useState(false);
     const [selectedMobileData, setSelectedMobileData] = useState<any>(null);
 
@@ -296,34 +324,34 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
                                                                     <span className="text-[9px] text-slate-500 font-mono font-bold uppercase tracking-widest">Step {index + 1}</span>
                                                                 </div>
 
-<div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-mono">
-  {/* From */}
-  <div className="flex items-center gap-1.5">
-    <span className="text-gray-500 text-[10px] uppercase font-bold dark:text-slate-500">
-      From
-    </span>
-    <span className="text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded
-      dark:text-slate-300 dark:bg-white/5">
-      {item.from}
-    </span>
-  </div>
+                                                                <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-mono">
+                                                                {/* From */}
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span className="text-gray-500 text-[10px] uppercase font-bold dark:text-slate-500">
+                                                                    From
+                                                                    </span>
+                                                                    <span className="text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded
+                                                                    dark:text-slate-300 dark:bg-white/5">
+                                                                    {item.from}
+                                                                    </span>
+                                                                </div>
 
-  {/* To */}
-  <div className="flex items-center gap-1.5">
-    <span className="text-gray-500 text-[10px] uppercase font-bold dark:text-slate-500">
-      To
-    </span>
-    <span
-      className={`px-1.5 py-0.5 rounded ${
-        item.to.includes('Now')
-          ? 'text-green-600 bg-green-100 animate-pulse font-bold dark:text-green-400 dark:bg-green-400/10'
-          : 'text-gray-700 bg-gray-100 dark:text-slate-300 dark:bg-white/5'
-      }`}
-    >
-      {item.to}
-    </span>
-  </div>
-</div>
+                                                                {/* To */}
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span className="text-gray-500 text-[10px] uppercase font-bold dark:text-slate-500">
+                                                                    To
+                                                                    </span>
+                                                                    <span
+                                                                    className={`px-1.5 py-0.5 rounded ${
+                                                                        item.to.includes('Now')
+                                                                        ? 'text-green-600 bg-green-100 animate-pulse font-bold dark:text-green-400 dark:bg-green-400/10'
+                                                                        : 'text-gray-700 bg-gray-100 dark:text-slate-300 dark:bg-white/5'
+                                                                    }`}
+                                                                    >
+                                                                    {item.to}
+                                                                    </span>
+                                                                </div>
+                                                                </div>
 
                                                                 {item.reason && (
                                                                     <div className="mt-2.5 py-2 px-3 bg-red-500/10 border-l-2 border-red-500 rounded-r-sm">
@@ -381,6 +409,14 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
                 data={analysisData?.available_actions || []}
                 ticketId={data.tktID}
             />
+           <ErrorModal
+                isOpen={error.isOpen}
+                onClose={closeError}
+                title={error.title}
+                message={error.message}
+                status={error.status} // مرر الـ status هنا
+            />
+
         </AppLayout>
     );
 }
