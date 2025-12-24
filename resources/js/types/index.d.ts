@@ -16,10 +16,15 @@ export interface NavGroup {
 }
 
 export interface NavItem {
-    title: string;
-    href: NonNullable<InertiaLinkProps['href']>;
+   title: string;
+    href?: InertiaLinkProps['href'];
     icon?: LucideIcon | null;
     isActive?: boolean;
+    items?: {
+        title: string;
+        href: NonNullable<InertiaLinkProps['href']>;
+        icon?: LucideIcon | null;
+    }[];
 }
 
 export interface SharedData {

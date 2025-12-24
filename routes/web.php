@@ -11,6 +11,26 @@ Route::get('/', function () {
 Route::post('/analyze', [AnalyzeController::class, 'create'])->name('analyze.data');
 Route::get('/analyze', [AnalyzeController::class, 'output'])->name('analyze.result');
 
+Route::prefix('compensation')->name('compensation.')->group(function () {
+    Route::get('/tts', function () {
+        return Inertia::render('Compensation/tts');
+    })->name('tts');
+    Route::get('/adf', function () {
+        return Inertia::render('Compensation/adf');
+    })->name('adf');
+    Route::get('/outage', function () {
+        return Inertia::render('Compensation/outage');
+    })->name('outage');
+});
+Route::get('/omhelper', function () {
+    return Inertia::render('OMhelper/index');
+})->name('OMhelper');
+
+Route::get('/office', function () {
+    return Inertia::render('office/index');
+})->name('office');
+
+
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
