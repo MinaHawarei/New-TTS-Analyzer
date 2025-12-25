@@ -6,7 +6,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { HandleAction } from "@/components/ui/handle-action-modal";
 import { ErrorModal } from "@/components/ui/error-modal";
 import { useState , useRef } from 'react';
-import {Play,Ticket,Search,History,ShieldAlert,Info,CheckCircle2,Zap , Activity} from 'lucide-react';
+import {Play,Ticket,Search,FileSpreadsheet,ShieldAlert,Info,CheckCircle2,Zap,Activity,Lock,AlertTriangle,AlertCircle,Phone} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,6 +24,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Compensation', href: '/' },
@@ -59,7 +60,7 @@ const useErrorModal = () => {
 };
 
 
-export default function TTSAnalyzer({ packages }: { packages: { id: number; name: string }[] }) {
+export default function TTSCompensation({ packages }: { packages: { id: number; name: string }[] }) {
     const [analysisData, setAnalysisData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     const { error, handleError, closeError } = useErrorModal();
@@ -68,6 +69,25 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
     const [showTicketOpen, setShowTicketOpen] = useState(false);
     const [showOutageClose, setShowOutageClose] = useState(false);
     const [showFollowUpcase, setShowFollowUpcase] = useState(false);
+
+    const [isLocked, setIsLocked] = useState(false); // هل الشاشة مقفلة؟
+    const [showUnlockConfirm, setShowUnlockConfirm] = useState(false); // هل نظهر رسالة التأكيد؟
+
+    // 2. دالة طلب فك القفل (تظهر الـ Popup)
+    const handleUnlockRequest = () => {
+        setShowUnlockConfirm(true);
+    };
+
+    // 3. دالة تأكيد فك القفل (تنفذ الفك فعلياً)
+    const confirmUnlock = () => {
+        setIsLocked(false);
+        setShowUnlockConfirm(false);
+    };
+
+    // 4. دالة إلغاء الفك
+    const cancelUnlock = () => {
+        setShowUnlockConfirm(false);
+    };
 
     // استخدام useForm من Inertia للتعامل مع البيانات والـ CSRF تلقائياً
     const { data, setData, post, processing, reset } = useForm({
@@ -116,31 +136,39 @@ const handleSubmit = (e: React.FormEvent) => {
 
     setIsLoading(true);
     setAnalysisData(null);
+    // تأكدنا إننا بنصفر حالة القفل في بداية البحث الجديد
+    setIsLocked(false);
+    setShowUnlockConfirm(false);
 
-    // --- الحل هنا: تحويل الكائن إلى FormData ---
     const formData = new FormData();
-
-    // إضافة كل الحقول العادية
     Object.keys(data).forEach(key => {
-        // نتحقق إذا كانت القيمة موجودة (ليست null) لتجنب المشاكل
         const value = (data as Record<string, any>)[key];
         if (value !== null && value !== undefined) {
             formData.append(key, value);
         }
     });
 
-    // إرسال الـ formData بدلاً من الـ data
     axios.post(route('compensation.data'), formData, {
         headers: {
-            'Content-Type': 'multipart/form-data', // إبلاغ السيرفر بنوع البيانات
+            'Content-Type': 'multipart/form-data',
         }
     })
+
     .then((response) => {
-        // ... نفس الكود الخاص بك
         setAnalysisData(response.data);
+
+        // ==========================================================
+        // التعديل هنا: الربط بالمتغير الصحيح من السيرفر
+        // ==========================================================
+        if (response.data.cst_has_tkt_before == true || response.data.cst_has_tkt_before == 1) {
+            setIsLocked(true); // تفعيل القفل
+        } else {
+            setIsLocked(false); // عدم تفعيل القفل
+        }
+        // ==========================================================
+
         setWasSubmitted(false);
         setShowFollowUpcase(response.data.needToCheekFollowUP || false);
-        // ...
     })
     .catch(handleError)
     .finally(() => {
@@ -214,7 +242,7 @@ const handleSubmit = (e: React.FormEvent) => {
 
                                 </div>
                                 <div className="relative flex-1">
-                                    <Ticket className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                                    <Phone className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                                     <Input
                                         placeholder="DSL Number"
                                         className={`pl-9 ${errors.DSLnumber ? "border-red-500 focus:border-red-500" : ""}`}
@@ -281,21 +309,33 @@ const handleSubmit = (e: React.FormEvent) => {
                                         )}
                                     </div>
 
-                                    {/* رفع الملف */}
                                     <div className="flex-1 space-y-1">
-                                        <label className="text-[10px] font-bold uppercase text-muted-foreground">
+                                        <label className="text-[10px] font-bold uppercase text-muted-foreground flex items-center gap-1.5">
                                             Usage File (Optional)
                                         </label>
-                                        <Input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept=".xlsx, .xls"
-                                            className="h-9 text-xs"
-                                            onChange={(e) => {
-                                                const file = e.target.files ? e.target.files[0] : null;
-                                                setData('UsageFile', file);
-                                            }}
-                                        />
+
+                                        <div className="relative">
+                                            {/* الأيقونة داخل الـ Input */}
+                                            <FileSpreadsheet className={`absolute left-3 top-2.5 w-4 h-4 z-10 transition-colors ${
+                                                data.UsageFile ? "text-green-600" : "text-muted-foreground"
+                                            }`} />
+
+                                            <Input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept=".xlsx, .xls"
+                                                /* إضافة padding-left (pl-9) لترك مساحة للأيقونة */
+                                                className={`h-9 text-xs pl-9 file:mr-4 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all ${
+                                                    analysisData?.validation === "Wrong Usage File"
+                                                    ? "border-red-500 ring-2 ring-red-500/20 animate-pulse"
+                                                    : data.UsageFile ? "border-green-500/50 bg-green-50/10" : ""
+                                                }`}
+                                                onChange={(e) => {
+                                                    const file = e.target.files ? e.target.files[0] : null;
+                                                    setData('UsageFile', file);
+                                                }}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="space-y-4">
@@ -471,9 +511,88 @@ const handleSubmit = (e: React.FormEvent) => {
                                 Tech Compensation Results
                             </CardTitle>
                         </CardHeader>
+                        <CardContent className="flex-1 overflow-y-auto p-6 bg-slate-50/30 dark:bg-slate-900/10 relative">
+                            {/* --- نافذة تأكيد فك القفل (POP UP) --- */}
+                            {showUnlockConfirm && (
+                                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                                    <div className="bg-background border border-border p-6 rounded-xl shadow-2xl w-80 text-center space-y-4 transform scale-100 animate-in zoom-in-95 duration-200">
+                                        <div className="mx-auto w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-2">
+                                            <AlertTriangle className="w-6 h-6 text-orange-600" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-lg">Are you sure?</h3>
+                                            <p className="text-sm text-muted-foreground">Do you really want to unlock the results?</p>
+                                        </div>
+                                        <div className="flex gap-3 justify-center pt-2">
+                                            <Button variant="outline" size="sm" onClick={cancelUnlock} className="w-full">
+                                                Cancel
+                                            </Button>
+                                            <Button variant="default" size="sm" onClick={confirmUnlock} className="w-full bg-orange-600 hover:bg-orange-700">
+                                                Yes, Unlock
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
-                        <CardContent className="flex-1 overflow-y-auto p-6 bg-slate-50/30 dark:bg-slate-900/10">
-                            {isLoading ? (
+                            {/* --- شاشة القفل (The Lock Screen) --- */}
+                            {isLocked && !isLoading ? (
+                                <div className="h-full flex flex-col items-center justify-center space-y-6 animate-in zoom-in-95 duration-500">
+                                    {/* القفل المتحرك */}
+                                    <div
+                                        className="relative group cursor-pointer"
+                                        onClick={handleUnlockRequest}
+                                    >
+                                        <div className="absolute -inset-4 bg-primary/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                        <div className="relative bg-background p-6 rounded-full border-4 border-primary/20 shadow-xl group-hover:scale-110 transition-transform duration-300">
+                                            <Lock className="w-16 h-16 text-primary animate-bounce" style={{ animationDuration: '2s' }} />
+                                        </div>
+
+                                        {/* رسالة تظهر عند التمرير */}
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                                            <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full">
+                                                Click to Unlock
+                                            </span>
+                                        </div>
+                                    </div>
+
+                        <div className="max-w-md mx-auto text-center space-y-6 py-4">
+                        <div className="space-y-2">
+                            <h2 className="text-3xl font-extrabold tracking-tight text-foreground">
+                            Results Locked
+                            </h2>
+                            <p className="text-muted-foreground text-sm leading-relaxed">
+                            The results are currently locked due to the following reasons:
+                            </p>
+                        </div>
+
+                        <div className="space-y-4">
+                            {analysisData?.duplecatedWarning && (
+                            <div className="px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/20 shadow-sm shadow-destructive/5">
+                                <p className="text-2xl font-black text-destructive leading-tight tracking-tight">
+                                {analysisData.duplecatedWarning}
+                                </p>
+                            </div>
+                            )}
+
+                            {analysisData?.validationReason && (
+                            <p className="text-lg font-bold text-amber-600 dark:text-amber-400 leading-relaxed">
+                                {analysisData.validationReason}
+                            </p>
+                            )}
+                        </div>
+
+                        {/* Decorative Divider */}
+                        <div className="flex justify-center items-center gap-2 pt-2">
+                            <span className="h-1.5 w-1.5 rounded-full bg-destructive/40 dark:bg-destructive/60"></span>
+                            <span className="h-1 w-12 rounded-full bg-destructive/20 dark:bg-destructive/30"></span>
+                            <span className="h-1.5 w-1.5 rounded-full bg-destructive/40 dark:bg-destructive/60"></span>
+                        </div>
+                        </div>
+
+                                </div>
+                            ) : (
+                            isLoading ? (
                                 <FullScreenLoader text="Analyzing ticket data, please wait…" />
                             ) : !analysisData ? (
                                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-40">
@@ -482,6 +601,74 @@ const handleSubmit = (e: React.FormEvent) => {
                                 </div>
                             ) : (
                                 <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+
+                                    {analysisData?.warnings && analysisData.warnings.length > 0 && (
+                                        <div className="w-full max-w-2xl mx-auto space-y-3 mb-6">
+                                            {/* ترتيب التحذيرات بحيث المستوى 1 يظهر الأول */}
+                                            {analysisData.warnings
+                                            .sort((a: any, b: any) => a.level - b.level)
+                                            .map((warn: { level: number; message: string }, idx: number) => {
+                                                // تحديد التصميم بناءً على الـ Level
+                                                const getStyle = (level: number) => {
+                                                switch (level) {
+                                                    case 1: // خطير جداً (أحمر)
+                                                    return {
+                                                        container: "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50 shadow-red-500/5",
+                                                        icon: <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />,
+                                                        textColor: "text-red-800 dark:text-red-300",
+                                                        label: "High Priority",
+                                                        labelColor: "text-red-500/80"
+                                                    };
+                                                    case 2: // تنبيه (برتقالي)
+                                                    return {
+                                                        container: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50 shadow-amber-500/5",
+                                                        icon: <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />,
+                                                        textColor: "text-amber-800 dark:text-amber-300",
+                                                        label: "Attention Required",
+                                                        labelColor: "text-amber-500/80"
+                                                    };
+                                                    default: // معلومات عادية (أزرق)
+                                                    return {
+                                                        container: "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/50 shadow-blue-500/5",
+                                                        icon: <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />,
+                                                        textColor: "text-blue-800 dark:text-blue-300",
+                                                        label: "Information",
+                                                        labelColor: "text-blue-500/80"
+                                                    };
+                                                }
+                                                };
+
+                                                const style = getStyle(warn.level);
+
+                                                return (
+                                                <div
+                                                    key={idx}
+                                                    className={`group relative flex items-center gap-4 p-4 rounded-2xl border shadow-sm transition-all hover:shadow-md ${style.container}`}
+                                                >
+                                                    {/* الأيقونة */}
+                                                    <div className="flex-shrink-0 animate-in fade-in zoom-in duration-300">
+                                                    {style.icon}
+                                                    </div>
+
+                                                    {/* محتوى التحذير */}
+                                                    <div className="flex-1">
+                                                    <div className={`text-[10px] font-black uppercase tracking-widest mb-0.5 ${style.labelColor}`}>
+                                                        {style.label}
+                                                    </div>
+                                                    <p className={`text-base font-bold leading-tight tracking-tight ${style.textColor}`}>
+                                                        {warn.message}
+                                                    </p>
+                                                    </div>
+
+                                                    {/* خط جانبي جمالي لزيادة التأكيد */}
+                                                    <div className={`absolute left-0 top-1/4 bottom-1/4 w-1 rounded-r-full opacity-60 ${
+                                                    warn.level === 1 ? "bg-red-600" : warn.level === 2 ? "bg-amber-600" : "bg-blue-600"
+                                                    }`} />
+                                                </div>
+                                                );
+                                            })}
+                                        </div>
+                                        )}
 
                                 {/* 1. قسم الفاليديشن (الأهم) */}
                                     <div className="p-0 rounded-xl border-2 overflow-hidden flex flex-col md:flex-row shadow-sm transition-all"
@@ -532,7 +719,22 @@ const handleSubmit = (e: React.FormEvent) => {
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-muted/20 p-4 rounded-lg border border-border/40">
                                         <CompactResultRow label="Problem Type" value={analysisData.problemType} bold />
                                         <CompactResultRow label="Escalations" value={`${analysisData.escalationtimes} times`} />
-                                        <CompactResultRow label="DSL Number" value={analysisData.DSLno} />
+                                        {/* التعديل هنا: إضافة تمييز لخانة الـ DSL إذا كان هناك خطأ في الملف */}
+                                        <div className={`rounded-md transition-all duration-500 ${
+                                            analysisData.validation === "Wrong Usage File"
+                                            ? "bg-red-500/10 ring-2 ring-red-500/50 animate-pulse p-1"
+                                            : ""
+                                        }`}>
+                                            <CompactResultRow
+                                                label="DSL Number"
+                                                value={analysisData.DSLno}
+                                            />
+                                            {analysisData.validation === "Wrong Usage File" && (
+                                                <span className="text-[10px] text-red-600 font-bold px-2 block mt-[-4px]">
+                                                    Verify DSL Number!
+                                                </span>
+                                            )}
+                                        </div>
                                         <CompactResultRow label="Main Package" value={analysisData.mainpackage} isBadge/>
                                     </div>
 
@@ -687,8 +889,12 @@ const handleSubmit = (e: React.FormEvent) => {
                                             </p>
                                         </div>
                                     )}
+                                    <CardContent className="p-4 text-sm">
+                                        {renderActionButton(analysisData?.weMobile, handleOpenModal)}
+                                    </CardContent>
                                 </div>
-                            )}
+                            ))}
+
                         </CardContent>
                     </Card>
                 </div>
@@ -758,72 +964,20 @@ function ResultRow({ label, value, color, bold, isBadge }: any) {
     );
 }
 // دالة لعرض محتوى We Mobile بناءً على الشروط
-const renderWeMobileContent = (data: any, handleOpenModal: (data: any) => void) => {
-    // 1. حالة عدم وجود بيانات أو تحميل
-    if (!data) return "No adjustment info available.";
-
-    // 2. إذا كان غير صالح (Valid = false) -> اعرض الرسالة فقط
-    if (data.valid === false) {
-        return (
-            <div
-                className="text-red-500 font-medium"
-                dangerouslySetInnerHTML={{ __html: data.message }}
-            />
-        );
-    }
-
-    // 3. إذا كان صالح (Valid = true) -> اعرض التفاصيل وزر الأكشن
+const renderActionButton = (data: any, handleOpenModal: (data: any) => void) => {
     return (
         <div className="space-y-4">
-            {/* عرض الرسالة العلوية (Instructions) */}
-            <div className="text-xs text-muted-foreground bg-blue-50/50 p-2 rounded border border-blue-100 dark:border-blue-900/50 dark:bg-blue-900/20">
-                <div dangerouslySetInnerHTML={{ __html: data.message }} />
-            </div>
-
-            {/* عرض البيانات غير الفارغة فقط (Mapping non-null elements) */}
-            <div className="grid grid-cols-2 gap-3">
-                {data.quota && (
-                    <CompactResultRow
-                        label="MBB Quota"
-                        value={`${data.quota} GB`}
-                        bold
-                        color="oklch(0.6 0.18 145)" // لون أخضر
-                    />
-                )}
-
-                {data.expireDays && (
-                    <CompactResultRow
-                        label="Validity"
-                        value={`${data.expireDays} Days`}
-                    />
-                )}
-
-                {data.Handled_By && (
-                    <CompactResultRow label="Assigned To" value={data.Handled_By} />
-                )}
-
-
-                {data.bss_service_code ? (
-                <CompactResultRow label="bss service code" value={data.bss_service_code} />
-                ) : (
-                <CompactResultRow label="SLA" value={data.sla} />
-                )}
-
-            </div>
-
-            {data.sr_id && (
-                <Button
-                    onClick={() => handleOpenModal(data)}
-                    className="w-full h-10 text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white
-                            shadow-[0_4px_14px_0_rgba(16,185,129,0.39)]
-                            transition-all duration-300 ease-in-out
-                            hover:scale-[1.01] active:scale-[0.98]
-                            flex items-center justify-center gap-2 group"
-                >
-                    <Zap className="w-4 h-4 fill-current group-hover:animate-pulse" />
-                    Take an Action
-                </Button>
-            )}
+            <Button
+                onClick={() => handleOpenModal(data)}
+                className="w-full h-10 text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white
+                        shadow-[0_4px_14px_0_rgba(16,185,129,0.39)]
+                        transition-all duration-300 ease-in-out
+                        hover:scale-[1.01] active:scale-[0.98]
+                        flex items-center justify-center gap-2 group"
+            >
+                <Zap className="w-4 h-4 fill-current group-hover:animate-pulse" />
+                Take an Action
+            </Button>
         </div>
     );
 };

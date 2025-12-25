@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Imports\UsersImport;
 use App\Models\CulcTheDuration;
+use App\Services\GetActions;
 use App\Models\TTS\FilterData;
 use App\Models\FindPackage;
 use App\Models\TTS\CompensationValidation;
@@ -48,7 +49,7 @@ class CompensationController extends Controller
         $voicetype = $request->input('voiceimpacttype');
         $orgData = FilterData::FilterData($data);
         $outageCloseTime = $request->input('outageCloseTime');
-
+        $warnings = [];
         if($outageCloseTime != null){
             $outageCloseTime = Carbon::parse($outageCloseTime);
             $esclationTime = count($orgData) ;
@@ -215,13 +216,15 @@ class CompensationController extends Controller
         $readablemainpackage = $mainpackage['unified_name'] ?? 'N/A' ;
         if ($mainpackage_is_empty) {
             if($hasUsagFile){
-                $readablemainpackage .= '<br><span class="blinking" style="display: inline-block; margin-right: 6px; padding: 4px 8px; background-color: #ff0000ff; color: #212529; font-size: 1.1em; border-radius: 4px;">
-                    ⚠️ Package manually selected – CDR usage file is empty
-                    </span>';
+                $warnings[] = [
+                    'level' => 2,
+                    'message' => 'Package manually selected – CDR usage file is empty'
+                ];
             }else{
-                $readablemainpackage .= '<br><span class="blinking" style="display: inline-block; margin-right: 6px; padding: 4px 8px; background-color: #ffffff; color: #212529; font-size: 1.1em; border-radius: 4px;">
-                    ⚠️ Package manually selected – CDR usage file missing
-                    </span>';
+                $warnings[] = [
+                    'level' => 2,
+                    'message' => 'Package manually selected – CDR usage file missing'
+                ];
             }
         }
 
@@ -395,17 +398,10 @@ class CompensationController extends Controller
             } catch (\Exception $e) {
             }
         }
+
         $duplecatedWarning = '';
         if($validation['cst_has_tkt_before'] == true){
             if($validation['cst_compansated_before'] == true){
-                $validationMassege .= '<br>
-                    <span style="flex-shrink: 0 !important; color: black !important; background-color: yellow !important; font-size: 0.5em !important; padding: 2px 6px !important; border-radius: 4px !important;">
-                        Customer has been compensated before
-                    </span>
-                    <span class="blinking" style="font-size: 0.5em !important;">⚠️</span>
-
-                ';
-                $validationReason = '';
                 $duplecatedWarning = 'Customer has been compensated before';
             }else{
                 if($validation['compansated_status'] =='pending'){
@@ -413,21 +409,12 @@ class CompensationController extends Controller
                         $duplecatedWarning = 'Check TTs/SRs and limit query transactions if the customer was compensated before';
                         $validation['cst_has_tkt_before'] = false ;
                         $validation['cst_compansated_before'] = false ;
-                        $validationMassege .= ' <span class="blinking" style="font-size: 1.0em !important;">⚠️</span>
-                            <br>
-                            <span style="flex-shrink: 0 !important; color: black !important; background-color: yellow !important; font-size: 0.4em !important; padding: 2px 6px !important; border-radius: 4px !important; display: inline-block !important;">
-                                Check TTs/SRs and limit query transactions if the customer was compensated before
-                            </span>
-                        ';
-
-
+                        $warnings[] = [
+                            'level' => 1,
+                            'message' => 'Check TTs/SRs and limit query transactions if the customer was compensated before'
+                        ];
                     }else{
-                         $validationMassege .= '<br>
-                        <span style="flex-shrink: 0 !important; color: black !important; background-color: yellow !important; font-size: 0.5em !important; padding: 2px 6px !important; border-radius: 4px !important;">
-                            this Ticket has Pending TT </span>
-                        <span class="blinking" style="margin-right: 6px; font-size: 0.5em;">⚠️</span>
-
-                        ';
+                        $validationMassege .= 'this Ticket has Pending TT';
                         $compansated_added_on = $validation['compansated_added_on'] ;
                         if($compansated_added_on != null){
                             try {
@@ -442,12 +429,7 @@ class CompensationController extends Controller
 
 
                 }else{
-                    $validationMassege .= '<br>
-                        <span style="flex-shrink: 0 !important; color: black !important; background-color: yellow !important; font-size: 0.5em !important; padding: 2px 6px !important; border-radius: 4px !important;">
-                            this Ticket has Rejected TT Before </span>
-                        <span class="blinking" style="margin-right: 6px; font-size: 0.5em;">⚠️</span>
 
-                    ';
                     $validationReason ="with Rejected Reason : ". $validation['tkt_rejected_reason'];
                     $duplecatedWarning = 'this Ticket has Rejected TT Before';
 
@@ -463,6 +445,21 @@ class CompensationController extends Controller
             $specialHandling = 'CLMGB Agent on spot' ;
         }
 
+        $available_actions = GetActions::GetActions('TTSCompensation' , $problemType , $compensation['compensationLE'] ,$compensation['compensationGB'], $compensation['hwoAddGB'] , $compensation['hwoAddLE']);
+
+        $available_actions = [
+            [
+                'type' => 'We Mobile Aproval',
+                'lable' => 'TT for CLM Team',
+                'sr_type' => 'TT',
+                'sr_id' => '101024018',
+                'sr_name' => 'We Mobile Adjustment',
+                'sla' => '15 Minutes',
+                'quota' => 12,
+                'amount' => 25,
+                'expireDays' => 30,
+            ]
+        ];
         return response()->json([
             'message' => 'Data received successfully!',
             'problemType' => $problemType,
@@ -497,6 +494,8 @@ class CompensationController extends Controller
             'duplecatedWarning' => $duplecatedWarning,
             'outage' => $outage,
             'specialHandling' => $specialHandling,
+            'warnings' => $warnings,
+            'available_actions' => $available_actions,
         ]);
     }
 
