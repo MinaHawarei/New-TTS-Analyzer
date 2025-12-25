@@ -192,21 +192,20 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
                             <div className="space-y-4 shrink-0 pt-2">
                                 <div className="space-y-1">
                                     <label className="text-xs font-semibold uppercase text-muted-foreground">Package Selection</label>
-                                    <Select onValueChange={(v) => setData('selectPackage', v)}>
+                                    <Select value={data.selectPackage} onValueChange={(v) => setData('selectPackage', v)}>
                                         <SelectTrigger
                                             className={`h-9 ${errors.selectPackage ? "border-red-500" : ""}`}
                                         >
                                             <SelectValue placeholder="Choose a Package" />
                                         </SelectTrigger>
-
                                         <SelectContent>
                                             {packages?.map(item => (
-                                            <SelectItem key={item.id} value={item.id.toString()}>
-                                                {item.name}
-                                            </SelectItem>
+                                                <SelectItem key={item.id} value={item.id.toString()}>
+                                                    {item.name}
+                                                </SelectItem>
                                             ))}
                                         </SelectContent>
-                                        </Select>
+                                    </Select>
 
                                         {errors.selectPackage && (
                                         <p className="text-xs text-red-500">Package selection is required</p>

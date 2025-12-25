@@ -209,7 +209,7 @@ class CompensationController extends Controller
         // breifing for 3/2/2025
         if ($validation['totalDuration'] < 86400) {
             $compensation['compensationLE'] = 0;
-            $compensation['hwoAddLE'] = 'Not Eligable';
+            $compensation['hwoAddLE'] = 'Not Eligible';
         }
 
 
@@ -270,8 +270,8 @@ class CompensationController extends Controller
             $satisfactionLE = '';
         }
         if ($compensation['compensationGB'] < 1) {
-            $compensation['hwoAddGB'] = 'Not Eligable';
-            $compensation['hwoAddLE'] = 'Not Eligable';
+            $compensation['hwoAddGB'] = 'Not Eligible';
+            $compensation['hwoAddLE'] = 'Not Eligible';
 
         }
 
@@ -279,7 +279,7 @@ class CompensationController extends Controller
 
 
         if(($problemType == 'voice down' || $problemType == 'Voice overlapping') && $validation['validation'] == true){
-            $validationMassege = '<span style="font-size: 1.0em;">Not Eligable as Case Voice Down unless the data was impacted</span>';
+            $validationMassege = '<span style="font-size: 1.0em;">Not Eligible as Case Voice Down unless the data was impacted</span>';
             $validatioColor = 'red';
             $compensation['compensationGB'] = 0;
             $compensation['hwoAddGB'] = '';
@@ -302,7 +302,7 @@ class CompensationController extends Controller
 
         $LEresponsbleTeam = '';
         $GBresponsbleTeam = '';
-
+        $is_telephonet = false;
 
 
         if($compensation['hwoAddGB'] == ' CLM TIER and SLA 15min'){
@@ -318,6 +318,7 @@ class CompensationController extends Controller
             if($compensation['hwoAddLE'] != ' CLM TIER and SLA'){
                 $LEresponsbleTeam = 'CLM Telephonet';
             }
+            $is_telephonet = true;
         }
 
 
@@ -445,21 +446,19 @@ class CompensationController extends Controller
             $specialHandling = 'CLMGB Agent on spot' ;
         }
 
-        $available_actions = GetActions::GetActions('TTSCompensation' , $problemType , $compensation['compensationLE'] ,$compensation['compensationGB'], $compensation['hwoAddGB'] , $compensation['hwoAddLE']);
+        $available_actions = GetActions::GetActions(
+            'TTSCompensation' ,
+            $problemType ,
+            $compensation['compensationLE'] ,
+            $compensation['compensationGB'],
+            $compensation['hwoAddGB'] ,
+            $compensation['hwoAddLE'] ,
+            $specialHandling,
+            $validation['tktStillOpen'],
+            $is_telephonet
 
-        $available_actions = [
-            [
-                'type' => 'We Mobile Aproval',
-                'lable' => 'TT for CLM Team',
-                'sr_type' => 'TT',
-                'sr_id' => '101024018',
-                'sr_name' => 'We Mobile Adjustment',
-                'sla' => '15 Minutes',
-                'quota' => 12,
-                'amount' => 25,
-                'expireDays' => 30,
-            ]
-        ];
+        );
+
         return response()->json([
             'message' => 'Data received successfully!',
             'problemType' => $problemType,
@@ -469,10 +468,10 @@ class CompensationController extends Controller
             'totalDuration' => "{$totalDuration['days']} days, {$totalDuration['hr']} hours, and {$totalDuration['min']} minutes",
             'validDuration' => $validDurationinDayes,
             'mainpackage' => $readablemainpackage,
-            'compensationGB' => "{$compensation['compensationGB']} GB",
+            'compensationGB' => $compensation['compensationGB'],
             'hwoAddGB' => "{$compensation['hwoAddGB']}",
             'satisfaction' => $satisfaction,
-            'compensationLE' => "{$compensation['compensationLE']} LE",
+            'compensationLE' =>$compensation['compensationLE'],
             'hwoAddLE' => "{$compensation['hwoAddLE']}",
             'satisfactionLE' => $satisfactionLE,
             'validation' => $validationMassege,

@@ -27,7 +27,7 @@ import {
 
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Compensation', href: '/' },
+    { title: 'Compensation', href: '#' },
     { title: 'TTS Ticket', href: compensation.tts.url() },
 ];
 
@@ -116,9 +116,28 @@ export default function TTSCompensation({ packages }: { packages: { id: number; 
             console.warn("No Ticket ID provided to the function");
             return;
         }
-        console.log("Processing Ticket ID:", ticketId);
         const url = `http://tts/new/index.php/logs/core_log/get_all_ticket_logs?ticket_id=${ticketId}`;
         window.open(url, 'TicketLogsPopup', 'width=800,height=600,resizable=yes,scrollbars=yes');
+    };
+    const openDuplicated = (DSLno: string) => {
+
+        if (!DSLno || !DSLno.trim()) {
+            console.warn("No Ticket ID provided to the function");
+            return;
+        }
+
+        if (DSLno.startsWith("0")) {
+            DSLno = DSLno.substring(1);
+        }
+
+        const urls = [
+            `https://bss.te.eg:12900/csp/pbh/business.action?BMEBusiness=pbhRelativeProcess&subsNumber=FBB${DSLno}`,
+            `https://bss.te.eg:12900/csp/pbh/business.action?BMEBusiness=srQueryAction&subsNumber=FBB${DSLno}`,
+        ];
+
+        urls.forEach((url, index) => {
+            window.open(url, `_blank${index}`);
+        });
     };
 
     const [errorModal, setErrorModal] = useState({ isOpen: false, message: "" });
@@ -251,7 +270,7 @@ const handleSubmit = (e: React.FormEvent) => {
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
                                                 e.preventDefault();
-                                                openTicketLogs(data.DSLnumber);
+                                                openDuplicated(data.DSLnumber);
                                             }
                                         }}
                                         onPaste={(e) => {
@@ -260,7 +279,7 @@ const handleSubmit = (e: React.FormEvent) => {
 
                                             setData('DSLnumber', pastedText);
 
-                                            openTicketLogs(pastedText);
+                                            openDuplicated(pastedText);
                                         }}
                                     />
 
@@ -741,40 +760,59 @@ const handleSubmit = (e: React.FormEvent) => {
                                     {/* 3. قسم التعويضات (Compensation) */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {/* تعويض الجيجا بايت */}
-                                        {(analysisData.compensationGB || analysisData.GBresponsbleTeam) && (
-                                            <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/50 dark:bg-blue-950/10">
-                                                <span className="text-[10px] text-blue-600 font-bold uppercase flex justify-between">
-                                                    free Quita
-                                                        <span className="text-[20px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full flex items-center gap-1 animate-bounce-subtle">
-                                                            🎁 +{analysisData.compensationGB}
-                                                        </span>
+                                       <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/50 dark:bg-blue-950/10">
+                                        <span className="text-[10px] text-blue-600 font-bold uppercase flex justify-between">
+                                            free Quota
+                                            {Number(analysisData.compensationGB) > 0 && (
+                                                <span className="text-[20px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full flex items-center gap-1 animate-bounce-subtle">
+                                                    🎁 +{analysisData.compensationGB} GB
                                                 </span>
-                                                <div className="flex justify-between items-end mt-1">
-                                                    <span className="text-3xl font-bold">
-                                                        {analysisData.compensationGB}
-                                                    </span>
-                                                </div>
-                                                {analysisData.hwoAddGB && <p className="text-[14px] mt-1 text-muted-foreground italic">{analysisData.hwoAddGB}</p>}
-                                            </div>
-                                        )}
+                                            )}
+                                        </span>
 
-                                        {/* تعويض المبلغ المالي */}
-                                        {(analysisData.compensationLE || analysisData.LEresponsbleTeam) && (
-                                            <div className="p-3 rounded-lg border border-green-100 bg-green-50/50 dark:bg-green-950/10">
-                                                <span className="text-[10px] text-green-600 font-bold uppercase flex justify-between">
-                                                    Amount
-                                                    <span className="text-[20px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full flex items-center gap-1">
-                                                        🎁 +{analysisData.compensationGB}
-                                                    </span>
+                                        <div className="flex flex-col mt-1">
+                                            <div className="flex justify-between items-baseline">
+                                                {/* جهة اليسار: القيمة بالجيجا */}
+                                                <span className="text-3xl font-bold">
+                                                    {analysisData.compensationGB} GB
                                                 </span>
-                                                <div className="flex justify-between items-end mt-1">
-                                                    <span className="text-3xl font-bold">
-                                                        {analysisData.compensationLE}
+
+                                                {/* جهة اليمين: البادج والكلمة بجانب بعضهما */}
+                                                <div className="flex items-center gap-1.5">
+                                                    <Badge variant="secondary" className="font-mono py-0 px-1.5 text-[12px]">
+                                                        {Number(analysisData.compensationGB) * 1024 * 1024 * 1024}
+                                                    </Badge>
+                                                    <span className="text-[11px] text-muted-foreground font-bold italic">
+                                                        Bytes
                                                     </span>
                                                 </div>
-                                                {analysisData.hwoAddLE && <p className="text-[14px] mt-1 text-muted-foreground italic">{analysisData.hwoAddLE}</p>}
                                             </div>
+                                        </div>
+
+                                        {analysisData.hwoAddGB && (
+                                            <p className="text-[14px] mt-1 text-muted-foreground italic">
+                                                {analysisData.hwoAddGB}
+                                            </p>
                                         )}
+                                    </div>
+
+                                        <div className="p-3 rounded-lg border border-green-100 bg-green-50/50 dark:bg-green-950/10">
+                                            <span className="text-[10px] text-green-600 font-bold uppercase flex justify-between">
+                                                Amount
+                                                {Number(analysisData.compensationGB) > 0 && Number(analysisData.compensationLE) > 0 && (
+                                                    <span className="text-[20px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full flex items-center gap-1 animate-bounce-subtle">
+                                                        🎁 +{analysisData.compensationGB}GB
+                                                    </span>
+                                                )}
+                                            </span>
+                                            <div className="flex justify-between items-end mt-1">
+                                                <span className="text-3xl font-bold">
+                                                    {analysisData.compensationLE} EGP
+                                                </span>
+                                            </div>
+                                            {analysisData.hwoAddLE && <p className="text-[14px] mt-1 text-muted-foreground italic">{analysisData.hwoAddLE}</p>}
+                                        </div>
+
                                     </div>
 
                                     {/* 4. التواريخ والمدة */}
@@ -785,17 +823,6 @@ const handleSubmit = (e: React.FormEvent) => {
                                         <CompactResultRow label="Total Duration" value={analysisData.totalDuration} color="oklch(0.6 0.2 250)" bold />
 
                                     </div>
-
-                                    {/* 5. تحذيرات إضافية (تظهر فقط إذا كانت true أو بها نص) */}
-                                    {(analysisData.duplecatedWarning || analysisData.outage || analysisData.specialHandling) && (
-                                        <div className="flex flex-wrap gap-2 pt-2">
-                                            {analysisData.duplecatedWarning && <Badge variant="outline" className="text-orange-500 border-orange-500 bg-orange-50">Duplicate Detected</Badge>}
-                                            {analysisData.outage && <Badge className="bg-purple-500">Outage Impacted</Badge>}
-                                            {analysisData.specialHandling && <Badge variant="secondary">Special Handling</Badge>}
-                                            {analysisData.voiceImpacted && <Badge variant="outline">Voice Impacted</Badge>}
-                                        </div>
-                                    )}
-
                                     {/* 6. Accordion for Usage */}
                                     {analysisData.usageCollectionData && (
                                         <Accordion type="single" collapsible className="w-full px-1 mt-4">
@@ -904,6 +931,7 @@ const handleSubmit = (e: React.FormEvent) => {
                 setIsOpen={setIsActionModalOpen}
                 data={analysisData?.available_actions || []}
                 ticketId={data.tktID}
+                dslNumber={data.DSLnumber} // أضف هذا السطر
             />
            <ErrorModal
                 isOpen={error.isOpen}

@@ -353,7 +353,7 @@ class AnalyzeController extends Controller
         $available_actions = [
             [
                 'type' => 'We Mobile Aproval',
-                'lable' => 'TT for CLM Team',
+                'label' => 'TT for CLM Team',
                 'sr_type' => 'TT',
                 'sr_id' => '101024018',
                 'sr_name' => 'We Mobile Adjustment',
