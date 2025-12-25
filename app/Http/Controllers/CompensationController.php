@@ -193,6 +193,18 @@ class CompensationController extends Controller
             $formattedData .= ''.number_format($data['total_usage'], 2).' GB';
             $formattedData .= '  '.$note.' </span><br>';
         }
+
+        $usageCollectionData = collect($usage)->map(function ($data) {
+            $isHighUsage = ($data['color'] === 'red');
+            return [
+                'date'    => $data['date'],
+                'usage'   => number_format($data['total_usage'], 2),
+                'unit'    => 'GB',
+                'color'   => $data['color'],
+                'note'    => $data['note'] ?? null,
+                'is_high'  => $isHighUsage,
+            ];
+        })->reverse()->values()->all(); // إضافة values() تحولها لمصفوفة عادية [{}, {}, {}]
         // breifing for 3/2/2025
         if ($validation['totalDuration'] < 86400) {
             $compensation['compensationLE'] = 0;
@@ -308,11 +320,11 @@ class CompensationController extends Controller
 
         $validDurationinDayes = $validDuration['days'] ;
         if($validDurationinDayes == 1){
-            $validDurationinDayes = "1 Day";
+            //$validDurationinDayes = "1 Day";
         }elseif($validDurationinDayes > 1){
-            $validDurationinDayes .= " Days";
+            //$validDurationinDayes .= " Days";
         }elseif($validDurationinDayes == 0 && $validDuration['hr']>0){
-            $validDurationinDayes = $validDuration['hr'] . " hours";
+            //$validDurationinDayes = $validDuration['hr'] . " hours";
         }
         $outage = false ;
         if($validation['outageTKT_onADF'] && $outageCloseTime == null){
@@ -471,6 +483,7 @@ class CompensationController extends Controller
             'validationReason' => $validationReason,
             'usageMessage' => $usageMessage,
             'usage' => $formattedData,
+            'usageCollectionData' => $usageCollectionData,
             'startDate' => $startDate,
             'closeDate' => $closeDate,
             'DSLno' => $DSLno,

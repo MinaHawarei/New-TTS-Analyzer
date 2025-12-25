@@ -67,8 +67,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function TTSAnalyzer({ packages }: { packages: { id: number; name: string }[] }) {
     const [analysisData, setAnalysisData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [wasSubmitted, setWasSubmitted] = useState(false);
     const { error, handleError, closeError } = useErrorModal();
-
     // استخدام useForm من Inertia للتعامل مع البيانات والـ CSRF تلقائياً
     const { data, setData, post, processing, reset } = useForm({
         tktID: '',
@@ -76,16 +76,19 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
         selectPackage: '',
     });
     const errors = {
-        tktID: !data.tktID,
-        inputText: !data.inputText,
-        selectPackage: !data.selectPackage,
+        tktID: wasSubmitted && !data.tktID,
+        inputText: wasSubmitted && !data.inputText,
+        selectPackage: wasSubmitted && !data.selectPackage,
     };
-    const isFormInvalid =
-        errors.tktID || errors.inputText || errors.selectPackage;
 
-    const openTicketLogs = () => {
-        if (!data.tktID) return alert('Please enter Ticket ID first!');
-        const url = `http://tts/new/index.php/logs/core_log/get_all_ticket_logs?ticket_id=${data.tktID}`;
+    const isFormInvalid = !data.tktID || !data.inputText || !data.selectPackage;
+    const openTicketLogs = (ticketId: string) => {
+        if (!ticketId || !ticketId.trim()) {
+            console.warn("No Ticket ID provided to the function");
+            return;
+        }
+        console.log("Processing Ticket ID:", ticketId);
+        const url = `http://tts/new/index.php/logs/core_log/get_all_ticket_logs?ticket_id=${ticketId}`;
         window.open(url, 'TicketLogsPopup', 'width=800,height=600,resizable=yes,scrollbars=yes');
     };
 
@@ -93,7 +96,12 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!data.inputText) return alert('item logs is required!');
+
+        // 1. تفعيل إظهار الأخطاء عند الضغط
+        setWasSubmitted(true);
+
+        // 2. التحقق من صحة البيانات قبل إرسال الطلب للـ API
+        if (isFormInvalid) return;
 
         setIsLoading(true);
         setAnalysisData(null);
@@ -101,6 +109,8 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
         axios.post(route('analyze.data'), data)
             .then((response) => {
                 setAnalysisData(response.data);
+                // اختياري: إذا أردت إخفاء اللون الأحمر بعد النجاح
+                setWasSubmitted(false);
             })
             .catch(handleError)
             .finally(() => {
@@ -137,11 +147,25 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
                             <div className="flex gap-2 shrink-0">
                                 <div className="relative flex-1">
                                     <Ticket className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                                   <Input
-                                    placeholder="Ticket ID"
-                                    className={`pl-9 ${errors.tktID ? "border-red-500 focus:border-red-500" : ""}`}
-                                    value={data.tktID}
-                                    onChange={e => setData('tktID', e.target.value)}
+                                    <Input
+                                        placeholder="Ticket ID"
+                                        className={`pl-9 ${errors.tktID ? "border-red-500 focus:border-red-500" : ""}`}
+                                        value={data.tktID}
+                                        onChange={e => setData('tktID', e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                openTicketLogs(data.tktID);
+                                            }
+                                        }}
+                                        onPaste={(e) => {
+                                            e.preventDefault();
+                                            const pastedText = e.clipboardData.getData('text').trim();
+
+                                            setData('tktID', pastedText);
+
+                                            openTicketLogs(pastedText);
+                                        }}
                                     />
 
                                     {errors.tktID && (
@@ -149,7 +173,7 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
                                     )}
 
                                 </div>
-                                <Button variant="secondary" onClick={openTicketLogs}>Logs</Button>
+                                <Button variant="secondary" onClick={() => openTicketLogs(data.tktID)}>Logs</Button>
                             </div>
 
                             <Textarea
@@ -194,7 +218,7 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
                                     <Button
                                         className="flex-1 bg-primary hover:bg-primary/90 shadow-md"
                                         onClick={handleSubmit}
-                                        disabled={isFormInvalid || isLoading}
+                                        disabled={isLoading}
                                         >
                                         {isLoading ? (
                                             "Analyzing…"
@@ -205,7 +229,7 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
                                         )}
                                         </Button>
 
-                                    <Button variant="destructive" className="px-3" onClick={() => { reset(); setAnalysisData(null); }}>
+                                    <Button variant="destructive" className="px-3" onClick={() => { reset(); setAnalysisData(null); setWasSubmitted(false);}}>
                                         Reset
                                     </Button>
                                 </div>

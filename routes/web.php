@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\AnalyzeController;
+use App\Http\Controllers\CompensationController;
 
 Route::get('/', function () {
     return Inertia::render('TTSAnalyzer/index');
@@ -21,6 +22,10 @@ Route::prefix('compensation')->name('compensation.')->group(function () {
     Route::get('/outage', function () {
         return Inertia::render('Compensation/outage');
     })->name('outage');
+
+    Route::post('/', [CompensationController::class, 'create'])->name('data');
+    Route::get('/', [CompensationController::class, 'output'])->name('result');
+
 });
 Route::get('/omhelper', function () {
     return Inertia::render('OMhelper/index');
