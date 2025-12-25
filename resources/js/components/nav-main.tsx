@@ -54,23 +54,23 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                 </SidebarMenuButton>
 
                                 {openMenus[item.title] && (
-    <SidebarMenu className="mt-1">
-        {item.items.map((sub) => (
-            <SidebarMenuItem key={sub.title}>
-                <SidebarMenuButton
-                    asChild
-                    isActive={resolveUrl(sub.href) === page.url}
-                    className="pl-6 w-full" // padding للتفرقة فقط + full width
-                >
-                    <Link href={sub.href} prefetch className="flex items-center gap-2 w-full">
-                        {sub.icon && <sub.icon />}
-                        <span>{sub.title}</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-        ))}
-    </SidebarMenu>
-)}
+                                    <SidebarMenu className="mt-1">
+                                        {item.items.map((sub) => (
+                                            <SidebarMenuItem key={sub.title}>
+                                                <SidebarMenuButton
+                                                    asChild
+                                                    isActive={resolveUrl(sub.href) === page.url}
+                                                    className="pl-6 w-full" // padding للتفرقة فقط + full width
+                                                >
+                                                    <Link href={sub.href} prefetch className="flex items-center gap-2 w-full">
+                                                        {sub.icon && <sub.icon />}
+                                                        <span>{sub.title}</span>
+                                                    </Link>
+                                                </SidebarMenuButton>
+                                            </SidebarMenuItem>
+                                        ))}
+                                    </SidebarMenu>
+                                )}
 
                             </SidebarMenuItem>
                         );

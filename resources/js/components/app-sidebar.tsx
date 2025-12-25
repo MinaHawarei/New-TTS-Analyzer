@@ -2,6 +2,7 @@ import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import {
     Sidebar,
+    useSidebar,
     SidebarContent,
     SidebarFooter,
     SidebarHeader,
@@ -12,7 +13,7 @@ import {
 import { office , OMhelper , TTSAnalyzer } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, BarChart3, Activity , PieChart , FileText } from 'lucide-react';
+import { BookOpen, BarChart3, Activity , FileSpreadsheet , ClipboardCheck ,FileSearch , AlertTriangle , ClipboardList } from 'lucide-react';
 import AppLogo from './app-logo';
 import compensation from '@/routes/compensation'
 
@@ -32,50 +33,54 @@ const mainNavItems: NavItem[] = [
                 {
                     title: 'TTS Tickets',
                     href: compensation.tts.url(),
-                    icon: PieChart,
+                    icon: ClipboardCheck,
                 },
                 {
                     title: 'ADF Tickets',
                     href: compensation.adf.url(),
-                    icon: PieChart,
+                    icon: FileSearch,
                 },
                 {
                     title: 'Outage',
                     href: compensation.outage.url(),
-                    icon: FileText,
+                    icon: AlertTriangle,
                 },
             ],
     },
     {
         title: 'OM Helper',
         href: OMhelper.url(),
-        icon: BarChart3,
+        icon: ClipboardList,
     },
     {
         title: 'Office tools',
         href: office.url(),
-        icon: BarChart3,
+        icon: FileSpreadsheet,
     },
 ];
 
 const footerNavItems: NavItem[] = [
     {
         title: 'User Guide',
-        href: 'https://laravel.com/docs/starter-kits#react',
+        href: '#',
         icon: BookOpen,
     },
 ];
 
 export function AppSidebar() {
+    const { toggleSidebar } = useSidebar();
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href={TTSAnalyzer()} prefetch>
-                                <AppLogo />
-                            </Link>
+                        {/* 3. تغيير SidebarMenuButton ليعمل كـ button بدلاً من Link */}
+                        <SidebarMenuButton
+                            size="lg"
+                            onClick={toggleSidebar}
+                            tooltip="Toggle Sidebar"
+                        >
+                            <AppLogo />
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
