@@ -15,14 +15,15 @@ export default function UnderConstruction() {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Under Construction" />
 
-            <div className="relative min-h-[80vh] flex flex-col items-center justify-center overflow-hidden bg-white dark:bg-slate-950 rounded-xl border border-dashed border-slate-300 dark:border-slate-800">
+            <div className="relative min-h flex flex-col items-center justify-center overflow-hidden bg-white dark:bg-slate-950 rounded-xl border border-dashed border-slate-300 dark:border-slate-800">
 
                 {/* الأشرطة التحذيرية العلوية (Construction Stripes) */}
-                <div className="absolute top-0 left-0 w-full h-8 bg-[repeating-linear-gradient(-45deg,#facc15,#facc15_20px,#000_20px,#000_40px)] opacity-90 shadow-md" />
+                <div className="absolute top-0 left-0 w-full h-8 bg-[repeating-linear-gradient(-45deg,#facc15,#facc15_20px,#000_20px,#000_40px)] opacity-90 shadow-md z-20" />
 
-                <div className="z-10 text-center space-y-8 px-4">
+                {/* محتوى الصفحة */}
+                <div className="relative z-10 text-center space-y-8 px-4 py-20"> {/* زيادة الـ padding من الأعلى */}
                     {/* أيقونة المهندس أو الخوذة مع أنيميشن نبض */}
-                    <div className="relative inline-block">
+                    <div className="relative inline-block mb-4">
                         <div className="absolute inset-0 animate-ping rounded-full bg-yellow-400/20" />
                         <div className="relative bg-yellow-400 p-6 rounded-full shadow-2xl">
                             <HardHat className="w-16 h-16 text-black" />
@@ -63,7 +64,7 @@ export default function UnderConstruction() {
                 </div>
 
                 {/* الأشرطة التحذيرية السفلية */}
-                <div className="absolute bottom-0 left-0 w-full h-8 bg-[repeating-linear-gradient(-45deg,#facc15,#facc15_20px,#000_20px,#000_40px)] opacity-90 shadow-md" />
+                <div className="absolute bottom-0 left-0 w-full h-8 bg-[repeating-linear-gradient(-45deg,#facc15,#facc15_20px,#000_20px,#000_40px)] opacity-90 shadow-md z-20" />
 
                 {/* نمط خلفية باهتة توحي بالمخططات الهندسية */}
                 <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/blueprint.png')]" />
@@ -79,8 +80,12 @@ export default function UnderConstruction() {
                     background-size: 40px 40px;
                     animation: progress-stripes 1s linear infinite;
                 }
+                @keyframes spin-slow {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
                 .animate-spin-slow {
-                    animation: spin 3s linear infinite;
+                    animation: spin-slow 3s linear infinite;
                 }
             `}</style>
         </AppLayout>

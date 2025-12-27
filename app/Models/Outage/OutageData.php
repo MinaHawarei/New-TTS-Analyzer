@@ -34,6 +34,7 @@ class OutageData
     public $needToUsage;
     public $FollowUp;
     public $FollowUpStartDate;
+    public $NeedFollowUp;
 
 
     public function __construct($data = [])
@@ -131,6 +132,7 @@ class OutageData
         }
         $this->Valid_duration = $ValidDuration  ;
         $this->needToUsage = false;
+        $this->NeedFollowUp = false;
         $this->validation = false;
 
         if($this->Duration >= 21600){
@@ -143,6 +145,7 @@ class OutageData
             //new Rouls
             if($this->Duration > 86400){
                 $this->needToUsage = true;
+                $this->NeedFollowUp = true;
                 if($this->Duration > 864000 && $this->FollowUp == true){
                     $followUpDate = Carbon::parse($this->From)->addDays(10);
                     $this->FollowUpStartDate = $followUpDate;
@@ -166,6 +169,7 @@ class OutageData
                 $this->needToUsage = false;
             }else{
                 $this->needToUsage = true;
+                $this->NeedFollowUp = true;
                 if($this->FollowUp == true){
                     $followUpDate = Carbon::parse($this->From)->addDays(10);
                     $this->FollowUpStartDate = $followUpDate;

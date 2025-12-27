@@ -3,7 +3,7 @@ import AppLayout from '@/layouts/app-layout';
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
-import { useState , useRef } from 'react';
+import { useState , useRef,useEffect  } from 'react';
 import { HandleAction } from "@/components/ui/handle-action-modal";
 import {
     Search, Info, CheckCircle2, Hash, Package,
@@ -41,19 +41,32 @@ export default function OutageCompensation({ packages }: { packages: { id: numbe
     const [errorModal, setErrorModal] = useState({ isOpen: false, title: '', message: '', status: null as number | null });
     const [showUnlockConfirm, setShowUnlockConfirm] = useState(false); // هل نظهر رسالة التأكيد؟
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [hasUsageFileMissingWarning, setHasUsageFileMissingWarning] = useState(false); // إضافة حالة جديدة
 
     const { data, setData, post, processing, progress, reset } = useForm({
         DSLnumber: '',
         selectPackage: '',
         ineligibleDays: '0', // Unpaid Days
         UsageFile: null as File | null,
-        FollowUpcase: 'no',
+        FollowUpcase: '',
         inputText: '', // Ticket Dump
 
         outages: [
             { ID: '', outageType: '', From: '', To: '' }
         ]
     });
+     useEffect(() => {
+        if (analysisData?.warnings) {
+            // التحقق من وجود تحذير "Usage File Missing"
+            const hasUsageWarning = analysisData.warnings.some(
+            (warning: { message: string }) =>
+                    warning.message.includes('Usage File') ||
+                    warning.message.includes('Usage file') ||
+                    warning.message.includes('Usage File Missing')
+            );
+            setHasUsageFileMissingWarning(hasUsageWarning);
+        }
+    }, [analysisData]);
 
     const [isActionModalOpen, setIsActionModalOpen] = useState(false);
     const [selectedMobileData, setSelectedMobileData] = useState<any>(null);
@@ -63,6 +76,7 @@ export default function OutageCompensation({ packages }: { packages: { id: numbe
         DSLnumber: wasSubmitted && !data.DSLnumber,
         inputText: wasSubmitted && !data.inputText,
         selectPackage: wasSubmitted && !data.selectPackage,
+        UsageFile: (wasSubmitted || hasUsageFileMissingWarning) && !data.UsageFile,
     };
 
     const openDuplicated = (DSLno: string) => {
@@ -129,9 +143,16 @@ export default function OutageCompensation({ packages }: { packages: { id: numbe
         e.preventDefault();
         setWasSubmitted(true);
 
-        // التحقق من الحقول الأساسية
-        if (!data.DSLnumber || !data.selectPackage) return;
-        const userUsedTextarea = data.inputText?.trim().length > 0;
+    const hasMissingFields = !data.DSLnumber || !data.inputText || !data.selectPackage || (hasUsageFileMissingWarning && !data.UsageFile);
+
+    if (hasMissingFields) {
+        console.log("Validation Failed");
+        return;
+    }
+
+
+
+    const userUsedTextarea = data.inputText?.trim().length > 0;
 
     const userUsedOutages =
         data.outages &&
@@ -315,7 +336,7 @@ export default function OutageCompensation({ packages }: { packages: { id: numbe
                                     <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">CST Follows Up?</label>
                                     <Select value={data.FollowUpcase} onValueChange={(v) => setData('FollowUpcase', v)}>
                                         <SelectTrigger className="h-10">
-                                            <SelectValue />
+                                            <SelectValue placeholder="Select" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="no">No</SelectItem>
@@ -442,40 +463,80 @@ export default function OutageCompensation({ packages }: { packages: { id: numbe
                             <Separator className="bg-border/60" />
 
                             {/* Section 3: Dump & File */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="space-y-1.5 md:col-span-2">
-                                    <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Ticket Dump / Details</label>
-                                    <Textarea
-                                        placeholder="Paste outage details here..."
-                                        className="max-h-[100px] min-h-[100px] font-mono text-xs resize-none bg-muted/20 focus:bg-background transition-colors"
-                                        value={data.inputText}
-                                        onChange={e => setData('inputText', e.target.value)}
-                                    />
-                                </div>
+                           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="space-y-1.5 md:col-span-2">
+        <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Ticket Dump / Details</label>
+        <Textarea
+            placeholder="Paste outage details here..."
+            className="max-h-[100px] min-h-[100px] font-mono text-xs resize-none bg-muted/20 focus:bg-background transition-colors"
+            value={data.inputText}
+            onChange={e => setData('inputText', e.target.value)}
+        />
+    </div>
 
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Usage File (Excel)</label>
-                                    <div className="h-[100px] border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-center hover:bg-muted/50 hover:border-primary/50 transition-all cursor-pointer relative group">
-                                        <Input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept=".xls,.xlsx"
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                            onChange={e => setData('UsageFile', e.target.files ? e.target.files[0] : null)}
-                                        />
-                                        <div className="group-hover:scale-110 transition-transform duration-300">
-                                            <Upload className="w-6 h-6 text-muted-foreground mb-2 mx-auto" />
-                                        </div>
-                                        <span className="text-sm font-medium text-muted-foreground truncate max-w-[90%] px-4">
-                                            {data.UsageFile ? (
-                                                <span className="text-primary font-semibold">{data.UsageFile.name}</span>
-                                            ) : (
-                                                "Click to upload usage file"
-                                            )}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+    <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">
+                Usage File (Excel)
+            </label>
+            {/* عرض Badge فقط إذا كان هناك تحذير ولم يتم رفع ملف */}
+            {hasUsageFileMissingWarning && !data.UsageFile && (
+                <Badge variant="destructive" className="text-[9px] h-5 animate-pulse">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    Required
+                </Badge>
+            )}
+        </div>
+
+        <div className={`h-[100px] border-2 rounded-lg flex flex-col items-center justify-center text-center hover:bg-muted/50 hover:border-primary/50 transition-all cursor-pointer relative group
+            ${hasUsageFileMissingWarning && !data.UsageFile ? 'border-red-500 bg-red-50/50 hover:border-red-600 hover:bg-red-100/50' : 'border-dashed border-primary/40'}`}>
+
+            <Input
+                ref={fileInputRef}
+                type="file"
+                accept=".xls,.xlsx"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                onChange={e => {
+                    const file = e.target.files ? e.target.files[0] : null;
+                    setData('UsageFile', file);
+                    // إخفاء التحذير عند اختيار ملف
+                    if (file) {
+                        setHasUsageFileMissingWarning(false);
+                    }
+                }}
+            />
+
+            <div className="group-hover:scale-110 transition-transform duration-300">
+                <Upload className={`w-6 h-6 mb-2 mx-auto ${hasUsageFileMissingWarning && !data.UsageFile ? 'text-red-500' : 'text-muted-foreground'}`} />
+            </div>
+            <span className={`text-sm font-medium truncate max-w-[90%] px-4 ${hasUsageFileMissingWarning && !data.UsageFile ? 'text-red-700 font-bold' : 'text-muted-foreground'}`}>
+                {data.UsageFile ? (
+                    <span className="text-primary font-semibold">
+                        {data.UsageFile.name}
+                    </span>
+                ) : (
+                    <span>
+                        {hasUsageFileMissingWarning ? (
+                            <span className="text-red-700 font-bold">⚠️ Click to upload required usage file</span>
+                        ) : (
+                            "Click to upload usage file"
+                        )}
+                    </span>
+                )}
+            </span>
+
+        </div>
+
+        {hasUsageFileMissingWarning && !data.UsageFile && (
+            <div className="mt-2 p-2 rounded-md animate-in fade-in zoom-in-95">
+                <p className="text-xs text-red-700 font-bold flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    Usage file is required to proceed with the analysis
+                </p>
+            </div>
+        )}
+    </div>
+</div>
 
                             {/* Submit Action */}
                             <div className="pt-4 flex justify-end gap-4 flex-wrap md:flex-nowrap">
@@ -496,6 +557,7 @@ export default function OutageCompensation({ packages }: { packages: { id: numbe
                                         reset();
                                         setAnalysisData(null);
                                         setWasSubmitted(false);
+                                        setHasUsageFileMissingWarning(false);
 
                                         if (fileInputRef.current) {
                                             fileInputRef.current.value = '';
@@ -547,45 +609,65 @@ export default function OutageCompensation({ packages }: { packages: { id: numbe
                     {!isLoading && analysisData && (
                         <div className="space-y-6">
                         {/* --- Warnings --- */}
-                        {analysisData.warnings && analysisData.warnings.length > 0 && (
+                       {analysisData.warnings && analysisData.warnings.length > 0 && (
                             <div className="w-full max-w-2xl mx-auto space-y-3 mb-6">
-                            {analysisData.warnings
-                                .sort((a: { level: number }, b: { level: number }) => a.level - b.level)
-                                .map((warn: { level: number; message: string }, idx: number) => {
-                                const getStyle = (level: number) => {
-                                    switch (level) {
-                                    case 1: return {
-                                        container: "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50 shadow-red-500/5",
-                                        icon: <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />,
-                                        textColor: "text-red-800 dark:text-red-300",
-                                        labelColor: "text-red-500/80",
-                                    };
-                                    case 2: return {
-                                        container: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50 shadow-amber-500/5",
-                                        icon: <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />,
-                                        textColor: "text-amber-800 dark:text-amber-300",
-                                        labelColor: "text-amber-500/80",
-                                    };
-                                    default: return {
-                                        container: "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/50 shadow-blue-500/5",
-                                        icon: <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />,
-                                        textColor: "text-blue-800 dark:text-blue-300",
-                                        labelColor: "text-blue-500/80",
-                                    };
-                                    }
-                                };
-                                const style = getStyle(warn.level);
-                                return (
-                                    <div key={idx} className={`group relative flex items-center gap-4 p-4 rounded-2xl border shadow-sm transition-all hover:shadow-md ${style.container}`}>
-                                    <div className="flex-shrink-0 animate-in fade-in zoom-in duration-300">{style.icon}</div>
-                                    <div className="flex-1">
-                                        <div className={`text-[10px] font-black uppercase tracking-widest mb-0.5 ${style.labelColor}`}>Warning</div>
-                                        <p className={`text-base font-bold leading-tight tracking-tight ${style.textColor}`}>{warn.message}</p>
-                                    </div>
-                                    <div className={`absolute left-0 top-1/4 bottom-1/4 w-1 rounded-r-full opacity-60 ${warn.level === 1 ? "bg-red-600" : warn.level === 2 ? "bg-amber-600" : "bg-blue-600"}`} />
-                                    </div>
-                                );
-                                })}
+                                {analysisData.warnings
+                                    .sort((a: { level: number }, b: { level: number }) => a.level - b.level)
+                                    .map((warn: { level: number; message: string; details?: string }, idx: number) => {
+                                        const getStyle = (level: number) => {
+                                            switch (level) {
+                                                case 0: return {
+                                                    container: "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50 shadow-red-500/5",
+                                                    icon: <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />,
+                                                    textColor: "text-red-800 dark:text-red-300",
+                                                    labelColor: "text-red-500/80",
+                                                    detailsColor: "text-red-700/80 dark:text-red-400/80",
+                                                };
+                                                case 1: return {
+                                                    container: "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50 shadow-red-500/5",
+                                                    icon: <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />,
+                                                    textColor: "text-red-800 dark:text-red-300",
+                                                    labelColor: "text-red-500/80",
+                                                    detailsColor: "text-red-700/80 dark:text-red-400/80",
+                                                };
+                                                case 2: return {
+                                                    container: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50 shadow-amber-500/5",
+                                                    icon: <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />,
+                                                    textColor: "text-amber-800 dark:text-amber-300",
+                                                    labelColor: "text-amber-500/80",
+                                                    detailsColor: "text-amber-700/80 dark:text-amber-400/80",
+                                                };
+                                                default: return {
+                                                    container: "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/50 shadow-blue-500/5",
+                                                    icon: <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />,
+                                                    textColor: "text-blue-800 dark:text-blue-300",
+                                                    labelColor: "text-blue-500/80",
+                                                    detailsColor: "text-blue-700/80 dark:text-blue-400/80",
+                                                };
+                                            }
+                                        };
+
+                                        const style = getStyle(warn.level);
+                                        return (
+                                            <div key={idx} className={`group relative flex items-center gap-4 p-4 rounded-2xl border shadow-sm transition-all hover:shadow-md ${style.container}`}>
+                                                <div className="flex-shrink-0 animate-in fade-in zoom-in duration-300">{style.icon}</div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className={`text-[10px] font-black uppercase tracking-widest mb-0.5 ${style.labelColor}`}>Warning</div>
+                                                    <p className={`text-base font-bold leading-tight tracking-tight mb-1 ${style.textColor}`}>
+                                                        {warn.message}
+                                                    </p>
+
+                                                    {/* عرض الـ details إذا كانت موجودة */}
+                                                    {warn.details && (
+                                                        <p className={`text-sm font-medium leading-relaxed mt-1.5 ${style.detailsColor}`}>
+                                                            {warn.details}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <div className={`absolute left-0 top-1/4 bottom-1/4 w-1 rounded-r-full opacity-60 ${warn.level === 1 ? "bg-red-600" : warn.level === 2 ? "bg-amber-600" : "bg-blue-600"}`} />
+                                            </div>
+                                        );
+                                    })}
                             </div>
                         )}
 
@@ -699,12 +781,16 @@ export default function OutageCompensation({ packages }: { packages: { id: numbe
                                 </span>
                                 <div className="flex flex-col mt-1 justify-between">
                                     <span className="text-3xl font-bold">{analysisData.compensationGB} GB</span>
-                                    <div className="flex items-center gap-1.5">
-                                    <Badge variant="secondary" className="font-mono py-0 px-1.5 text-[12px]">
-                                        {Number(analysisData.compensationGB) * 1024 * 1024 * 1024}
-                                    </Badge>
-                                    <span className="text-[11px] text-muted-foreground font-bold italic">Bytes</span>
-                                    </div>
+                                    {analysisData && Number(analysisData.compensationGB) > 0 && (
+                                        <div className="flex items-center gap-1.5">
+                                            <Badge variant="secondary" className="font-mono py-0 px-1.5 text-[12px]">
+                                                {Number(analysisData.compensationGB) * 1024 * 1024 * 1024}
+                                            </Badge>
+                                            <span className="text-[11px] text-muted-foreground font-bold italic">
+                                                Bytes
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                                 {analysisData.hwoAddGB && <p className="text-[14px] mt-1 text-muted-foreground italic">{analysisData.hwoAddGB}</p>}
                             </div>

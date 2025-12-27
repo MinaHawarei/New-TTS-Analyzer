@@ -33,12 +33,17 @@ class OutageController extends Controller
         $total_days = '';
         $warnings = [];
 
-        $selectFollowUp = $request->input('FollowUp');
-        if($selectFollowUp){
+        $selectFollowUp = $request->input('FollowUpcase');
+
+        if($selectFollowUp == 'yes'){
             $selectFollowUp = true;
-        }else{
+        }elseif($selectFollowUp == 'no'){
             $selectFollowUp = false;
+        }else{
+            $selectFollowUp = null;
         }
+
+
         $hasUsagFile = false ;
         if ($request->hasFile('UsageFile')) {
             try {
@@ -243,18 +248,23 @@ class OutageController extends Controller
 
 
         $tkt_id = '';
+        $NeedFollowUp = false ;
 
         foreach($orgData as $item){
+            if($NeedFollowUp == false){
+                $NeedFollowUp = $orgData[0]->NeedFollowUp ;
+            }
+
             $validation = OutageValidation::validate($data ,$service_number, $item,  $usage);
 
             $filteredUsage = [...$validation['filteredUsage'], ...$filteredUsage];
             $usageMessage .= $validation['usageMessage'];
-            $test = $validation['ValidDuration'] ;
             $totalDuration = $this->culcTheSeconds($validation['totalDuration']);
             $validDuration = $this->culcTheSeconds($validation['ValidDuration']);
             $tkt_id .= $item->ID . ' - ';
             $wrongDSLno = false;
             $problemType = $validation['problemType'];
+
             if($validation['DSLno'] != ''){
                 $DSLno = $validation['DSLno'];
                 if($DSLno != $service_number){
@@ -404,17 +414,31 @@ class OutageController extends Controller
 
         }
         if($wrongDSLno){
-            $validationMassege = 'Wrong Usage File';
-            $validatioColor = 'red';
-            $satisfaction = 0;
-            $validationReason = 'The DSL number provided does not match the CDR usage file.';
-            $formattedData = '';
-            $total_GB = 0;
-            $total_LE = 0;
-            $total_days = 0;
-            $hwoAddGB = '';
-            $hwoAddLE = '';
-            $satisfaction = 0;
+            //$validationMassege = 'Wrong Usage File';
+            //$validatioColor = 'red';
+            //$satisfaction = 0;
+            //$validationReason = 'The DSL number provided does not match the CDR usage file.';
+            //$formattedData = '';
+            //$total_GB = 0;
+            //$total_LE = 0;
+            //$total_days = 0;
+            //$hwoAddGB = '';
+            //$hwoAddLE = '';
+            //$satisfaction = 0;
+            $warnings[] = [
+                'level' => 0,
+                'message' => 'Wrong Usage File',
+                'details' => 'The DSL number provided does not match the CDR usage file.'
+            ];
+        }
+        if($NeedFollowUp === true && $selectFollowUp === null){
+            $warnings[] = [
+                'level' => 0,
+                'message' => 'Need to Select Follow up Status',
+                'details' => 'check if cst follow up with us or not'
+            ];
+        }else{
+            $NeedFollowUp = false;
         }
 
 
@@ -429,14 +453,11 @@ class OutageController extends Controller
             $total_satisfaction = $total_satisfaction - $ineligibleDays_GB;
 
             if($total_days <= 0){
-                $validationMassege = 'unPaid Days begger than valid duration';
-                $validatioColor = 'red';
-                $total_GB = 0;
-                $total_LE = 0;
-                $total_days = 0;
-                $hwoAddGB = '';
-                $hwoAddLE = '';
-                $satisfaction = 0;
+                $warnings[] = [
+                    'level' => 0,
+                    'message' => 'Wrong un Paid Days ',
+                    'details' => 'unPaid Days begger than valid duration'
+                ];
             }
 
         }
@@ -494,50 +515,61 @@ class OutageController extends Controller
         }
 
         if($UsageFileIsMissing){
-            $validationMassege = 'include the Usage File';
-            $validatioColor = 'red';
-            $total_GB = 0;
-            $total_LE = 0;
-            $hwoAddGB = '';
-            $hwoAddLE = '';
-            $satisfaction = 0;
-            $total_days = '';
+            $warnings[] = [
+                'level' => 0,
+                'message' => 'Usage File Missing',
+                'details' => 'include the Usage File'
+            ];
 
         }
-
-
-
         $responsbleTeam = '';
         $is_telephonet = false;
-
-
-
-        if(str_contains($compensation['packageName'], 'Telephonet')){
-            $is_telephonet = true;
-        }
         $specialHandling = '' ;
-        if($hwoAddLE == ' CLM team SLA 15 min' && $hwoAddGB == ' Agent on spot'){
-            $specialHandling = 'CLMLE Agent on spot' ;
-        }elseif($hwoAddLE == ' Agent on spot' && $hwoAddGB == ' CLM team SLA 15 min'){
-            $specialHandling = 'CLMGB Agent on spot' ;
+        $available_actions = [];
+        $hasLevel0Warnings = !empty(array_filter($warnings, function($warning) {
+            return $warning['level'] === 0;
+        }));
+
+        if($hasLevel0Warnings){
+            $validationMassege = 'Please complete all required Data first.';
+            $validatioColor = 'red';
+            $total_GB = null;
+            $total_LE = null;
+            $hwoAddGB = null;
+            $hwoAddLE = null;
+            $satisfaction = null;
+
+        }else{
+
+            if(str_contains($compensation['packageName'], 'Telephonet')){
+                $is_telephonet = true;
+            }
+
+            if($hwoAddLE == ' CLM team SLA 15 min' && $hwoAddGB == ' Agent on spot'){
+                $specialHandling = 'CLMLE Agent on spot' ;
+            }elseif($hwoAddLE == ' Agent on spot' && $hwoAddGB == ' CLM team SLA 15 min'){
+                $specialHandling = 'CLMGB Agent on spot' ;
+            }
+
+            $available_actions = GetActions::GetActions(
+                'compensation',
+                'outage' ,
+                $total_LE ,
+                $total_GB,
+                $hwoAddGB ,
+                $hwoAddLE ,
+                $specialHandling,
+                false,
+                $is_telephonet ,
+                $tkt_id ,
+                $satisfaction ,
+                $total_days
+
+            );
         }
 
-        $available_actions = GetActions::GetActions(
-            'compensation',
-            'outage' ,
-            $total_LE ,
-            $total_GB,
-            $hwoAddGB ,
-            $hwoAddLE ,
-            $specialHandling,
-            false,
-            $is_telephonet ,
-            $tkt_id ,
-            $satisfaction ,
-            $total_days
 
-        );
-
+        $closedfrom = $test;
         return response()->json([
 
             'message' => 'Data received successfully!',
@@ -566,8 +598,7 @@ class OutageController extends Controller
             'warnings' => $warnings,
             'available_actions' => $available_actions,
             'usageCollectionData' => $usageCollectionData,
-
-
+            'NeedFollowUp' => $NeedFollowUp,
         ]);
     }
      private function closedDate($date)

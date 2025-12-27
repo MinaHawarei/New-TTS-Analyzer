@@ -25,7 +25,6 @@ Route::prefix('compensation')->name('compensation.')->group(function () {
     })->name('outage');
 
     Route::post('/', [CompensationController::class, 'create'])->name('data');
-    Route::get('/', [CompensationController::class, 'output'])->name('result');
 
 });
 
