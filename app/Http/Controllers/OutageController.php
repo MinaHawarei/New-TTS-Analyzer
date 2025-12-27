@@ -311,19 +311,7 @@ class OutageController extends Controller
 
             $readablemainpackage = $mainpackage['unified_name'] ?? 'N/A' ;
 
-            if ($mainpackage_is_empty) {
-                if($hasUsagFile){
-                    $warnings[] = [
-                        'level' => 2,
-                        'message' => 'Package manually selected – CDR usage file is empty'
-                    ];
-                }else{
-                    $warnings[] = [
-                        'level' => 2,
-                        'message' => 'Package manually selected – CDR usage file missing'
-                    ];
-                }
-            }
+
 
             $needToUsage = $validation['needToUsage'];
 
@@ -469,6 +457,19 @@ class OutageController extends Controller
         $diffFromLastClose = $this->closedDate($closeDate);
         $closedfrom = $diffFromLastClose['closedfrom'];
 
+        if ($mainpackage_is_empty) {
+            if($hasUsagFile){
+                $warnings[] = [
+                    'level' => 2,
+                    'message' => 'Package manually selected – CDR usage file is empty'
+                ];
+            }else{
+                $warnings[] = [
+                    'level' => 2,
+                    'message' => 'Package manually selected – CDR usage file missing'
+                ];
+            }
+        }
 
         if ($total_GB <= 75) {
             $hwoAddGB = ' Agent on spot';

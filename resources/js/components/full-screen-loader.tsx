@@ -17,7 +17,7 @@ export default function SectionLoader({ text = "Analyzing Data..." }: { text?: s
   }, []);
 
   return (
-    <div className="absolute inset-0 z-50 bg-background/90 backdrop-blur-md
+    <div className="absolute inset-0 z-50 bg-transparent backdrop-blur-md
                     flex flex-col items-center justify-center rounded-xl
                     animate-in fade-in-0 zoom-in-95 duration-500">
 
@@ -60,23 +60,23 @@ export default function SectionLoader({ text = "Analyzing Data..." }: { text?: s
       {/* النصوص مع أنيميشن */}
       <div className="mt-8 space-y-2 text-center max-w-xs">
         <div className="flex items-center justify-center gap-1">
-          <p className="text-sm font-semibold text-foreground tracking-wide">
+            <p className="text-sm font-semibold text-foreground tracking-wide whitespace-nowrap">
             {text}
-          </p>
-          <span className="text-sm font-semibold text-primary w-4 text-left">
+            </p>
+            <span className="text-sm font-semibold text-primary w-4 text-left">
             {dots}
-          </span>
+            </span>
         </div>
 
         <p className="text-xs text-muted-foreground animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-          Running calculations & fetching history<span className="animate-pulse">...</span>
+            Running calculations & fetching history<span className="animate-pulse"></span>
         </p>
 
-        {/* شريط التقدم */}
-        <div className="mt-4 w-48 h-1.5 bg-primary/10 rounded-full overflow-hidden">
-          <div className="h-full bg-primary rounded-full animate-progress" style={{ animationDuration: '3s' }} />
+        {/* شريط التقدم داخل النص */}
+        <div className="w-48 h-1.5 bg-primary/10 rounded-full overflow-hidden mx-auto">
+            <div className="h-full bg-primary rounded-full animate-progress" style={{ animationDuration: '3s' }} />
         </div>
-      </div>
+    </div>
 
       {/* إضافة الأنيميشن المخصصة في الـ style */}
       <style>{`

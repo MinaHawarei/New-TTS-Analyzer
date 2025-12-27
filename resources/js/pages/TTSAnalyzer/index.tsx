@@ -1,4 +1,4 @@
-import FullScreenLoader from '@/components/full-screen-loader';
+import SectionLoader from '@/components/full-screen-loader';
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type NavItem } from '@/types';
@@ -247,7 +247,7 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
                         </CardHeader>
                         <CardContent className="flex-1 overflow-y-auto p-6 bg-slate-50/30 dark:bg-slate-900/10">
                             {isLoading ? (
-                                <FullScreenLoader text="Analyzing ticket data, please wait…" />
+                                <SectionLoader text="Analyzing ticket data, please wait" />
                             ) : !analysisData ? (
                                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-40">
                                     <PlaceholderPattern className="w-16 h-16 mb-4" />
@@ -287,7 +287,7 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
                                             </div>
 
                                             {/* الجزء الثاني: الـ SLA (يظهر فقط إذا لم يكن null) */}
-                                            {analysisData.sla && (
+                                            {analysisData.sla && analysisData.slaStatus !== 'Closed' && (
                                                 <div className="flex-1 px-4 py-3 flex flex-col justify-center min-w-0 border-l border-primary/10 bg-primary/[0.02]">
                                                     <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest leading-none mb-1.5">
                                                         SLA
@@ -430,7 +430,6 @@ export default function TTSAnalyzer({ packages }: { packages: { id: number; name
                isOpen={isActionModalOpen}
                 setIsOpen={setIsActionModalOpen}
                 data={analysisData?.available_actions || []}
-                ticketId={data.tktID}
             />
            <ErrorModal
                 isOpen={error.isOpen}

@@ -77,7 +77,7 @@ class GetActions
 
                 $actions = self::mergeActions($GBactions, $LEactions);
                 if($quota > 0){
-                    $serviceContent ='has been Refuse to compensated for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$quota.' OR '.$amount.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.' and his phone Number is ';
+                    $serviceContent ='has been Refuse to compensated for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$quota.' GB OR '.$amount.' EGP '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.' and his phone Number is ';
 
                     $actions[] = [
                         'type'       => 'General',
@@ -160,7 +160,7 @@ class GetActions
         if($satisfaction == 0){
             $satisfaction = 'without satisfaction';
         }else{
-            $satisfaction ='and satisfaction : '.$satisfaction ;
+            $satisfaction ='and satisfaction : '.$satisfaction . ' GB' ;
         }
         if ($responsibleTeam === 'not eligible') {
 
@@ -202,9 +202,9 @@ class GetActions
                 $sr_name = "Tech Concession On Spot-Ticket open";
 
                 if($type == 'LE'){
-                    $serviceContent ='has been compensated for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$amount.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.', Problem solved but ticket still open , and his phone Number is ';
+                    $serviceContent ='has been compensated for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$amount.' EGP '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.', Problem solved but ticket still open , and his phone Number is ';
                 }else{
-                    $serviceContent ='has been compensated for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$quota.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.', Problem solved but ticket still open , and his phone Number is ';
+                    $serviceContent ='has been compensated for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$quota.' GB '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.', Problem solved but ticket still open , and his phone Number is ';
                 }
 
             }else{
@@ -212,10 +212,10 @@ class GetActions
                     $sr_name = 'Outage from 6h to 12h– On Spot';
                 }
                 if($type == 'LE'){
-                    $serviceContent ='has been compensated for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$amount.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.' and his phone Number is ';
+                    $serviceContent ='has been compensated for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$amount.' EGP '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.' and his phone Number is ';
 
                 }else{
-                    $serviceContent ='has been compensated for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$quota.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.' and his phone Number is ';
+                    $serviceContent ='has been compensated for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$quota.' GB '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.' and his phone Number is ';
                 }
 
             }
@@ -232,7 +232,7 @@ class GetActions
                 'serviceContent'=> $serviceContent
             ];
             if($specialHandling === 'clmle agent on spot'){
-                $serviceContent ='asked for compensation regarding '.$ticketType.' ID :  '.$tkt_id.'for the Valid period due for compensation , which is: '.$validDaysText.'The compensation Satisfaction Gigabytes has been Added with : '.$satisfaction.' and amount with a value of '.$amount.' need to be added, and his phone Number is ';
+                $serviceContent ='asked for compensation regarding '.$ticketType.' ID :  '.$tkt_id.' for the Valid period due for compensation , which is: '.$validDaysText.'The compensation Satisfaction Gigabytes has been Added with : '.$satisfaction.' and amount with a value of '.$amount.' EGP need to be added, and his phone Number is ';
                 $actions[] = [
                 'type'       => 'LE',
                 'label'      => 'Satisfaction Quota',
@@ -246,7 +246,7 @@ class GetActions
                 'serviceContent'=> $serviceContent
                 ];
             }elseif($specialHandling === 'clmgb agent on spot'){
-                $serviceContent ='asked for compensation regarding '.$ticketType.' ID :  '.$tkt_id.'for the Valid period due for compensation , which is: '.$validDaysText.'The compensation Amount in EGB has been Added with : '.$amount.' and Satisfaction Gigabytes with a value of '.$satisfaction.' need to be added, and his phone Number is ';
+                $serviceContent ='asked for compensation regarding '.$ticketType.' ID :  '.$tkt_id.' for the Valid period due for compensation , which is: '.$validDaysText.'The compensation Amount in EGB has been Added with : '.$amount.' EGP and Satisfaction Gigabytes with a value of '.$satisfaction.' need to be added, and his phone Number is ';
                 $actions[] = [
                 'type'       => 'LE',
                 'label'      => 'Satisfaction Quota',
@@ -263,15 +263,15 @@ class GetActions
         }elseif($responsibleTeam === 'clm team sla 15 min' || $responsibleTeam === 'clm team & billing sla 75 min (8am:9pm except friday 2pm:9pm)'){
 
             if($type == 'LE'){
-                $serviceContent ='asked for compensation regarding '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$amount.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.' and his phone Number is ';
+                $serviceContent ='asked for compensation regarding '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$amount.' EGP '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.' and his phone Number is ';
             }else{
-                $serviceContent ='asked for compensation regarding '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$quota.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.' and his phone Number is ';
+                $serviceContent ='asked for compensation regarding '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$quota.' GB '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.' and his phone Number is ';
             }
 
             if($specialHandling === 'clmle agent on spot'){
-                $serviceContent ='asked for compensation regarding '.$ticketType.' ID : '.$tkt_id.'for the Valid period due for compensation , which is: '.$validDaysText.'The compensation Satisfaction Gigabytes has been Added with : '.$satisfaction.' and amount with a value of '.$amount.' need to be added, and his phone Number is ';
+                $serviceContent ='asked for compensation regarding '.$ticketType.' ID : '.$tkt_id.'for the Valid period due for compensation , which is: '.$validDaysText.'The compensation Satisfaction Gigabytes has been Added with : '.$satisfaction.' and amount with a value of '.$amount.' EGP need to be added, and his phone Number is ';
             }elseif($specialHandling === 'clmgb agent on spot'){
-                $serviceContent ='asked for compensation regarding '.$ticketType.' ID : '.$tkt_id.'for the Valid period due for compensation , which is: '.$validDaysText.'The compensation Amount in EGB has been Added with : '.$amount.' and Satisfaction Gigabytes with a value of '.$satisfaction.' need to be added, and his phone Number is ';
+                $serviceContent ='asked for compensation regarding '.$ticketType.' ID : '.$tkt_id.'for the Valid period due for compensation , which is: '.$validDaysText.'The compensation Amount in EGB has been Added with : '.$amount.' EGP and Satisfaction Gigabytes with a value of '.$satisfaction.' need to be added, and his phone Number is ';
             }
 
             if($responsibleTeam === 'clm team sla 15 min'){
@@ -421,9 +421,9 @@ class GetActions
         }
         if($responsibleTeam != 'agent on spot' && $tktStillOpen){
              if($type == 'LE'){
-                $serviceContent ='has been Asked CLM Team to compensat CST for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$amount.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.', Problem solved but ticket still open , and his phone Number is ';
+                $serviceContent ='has been Asked CLM Team to compensat CST for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$amount.' EGP '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.', Problem solved but ticket still open , and his phone Number is ';
             }else{
-                $serviceContent ='has been Asked CLM Team to compensat CST for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$quota.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.', Problem solved but ticket still open , and his phone Number is ';
+                $serviceContent ='has been Asked CLM Team to compensat CST for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$quota.' GB '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.', Problem solved but ticket still open , and his phone Number is ';
             }
             $actions[] = [
                 'type'       => $type,

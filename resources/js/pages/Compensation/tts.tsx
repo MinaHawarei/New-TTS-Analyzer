@@ -613,7 +613,7 @@ const handleSubmit = (e: React.FormEvent) => {
                             ) : (
                             isLoading ? (
                                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-40">
-                                    <SectionLoader text="Analyzing Ticket Logs..."/>
+                                    <SectionLoader text="Analyzing & Calculating Ticket data, please wait" />
                                 </div>
 
 
@@ -938,7 +938,6 @@ const handleSubmit = (e: React.FormEvent) => {
                isOpen={isActionModalOpen}
                 setIsOpen={setIsActionModalOpen}
                 data={analysisData?.available_actions || []}
-                ticketId={data.tktID}
                 dslNumber={data.DSLnumber} // أضف هذا السطر
             />
            <ErrorModal

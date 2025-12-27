@@ -4,6 +4,7 @@ import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { useState , useRef } from 'react';
+import { HandleAction } from "@/components/ui/handle-action-modal";
 import {
     Search, Info, CheckCircle2, Hash, Package,
     User, Phone, Ticket, AlertCircle, FileText,
@@ -528,7 +529,7 @@ export default function OutageCompensation({ packages }: { packages: { id: numbe
                     {/* Loader */}
                     {isLoading && (
                         <div className="min-h-[300px] absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-[2px]">
-                            <SectionLoader />
+                            <SectionLoader text="Analyzing & Calculating Outage data, please wait" />
                         </div>
                     )}
 
@@ -812,6 +813,12 @@ export default function OutageCompensation({ packages }: { packages: { id: numbe
                 </div>
 
             </div>
+            <HandleAction
+                isOpen={isActionModalOpen}
+                setIsOpen={setIsActionModalOpen}
+                data={analysisData?.available_actions || []}
+                dslNumber={data.DSLnumber} // أضف هذا السطر
+            />
 
             <ErrorModal
                 isOpen={errorModal.isOpen}

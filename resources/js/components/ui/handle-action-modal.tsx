@@ -8,7 +8,6 @@ interface HandleActionProps {
     isOpen: boolean;
     setIsOpen: (open: boolean) => void;
     data: any[];
-    ticketId: string;
     dslNumber?: string;
 }
 
@@ -16,7 +15,6 @@ export function HandleAction({
     isOpen,
     setIsOpen,
     data,
-    ticketId,
     dslNumber = ''
 }: HandleActionProps) {
     const [formData, setFormData] = useState({
