@@ -1,4 +1,4 @@
-import FullScreenLoader from '@/components/full-screen-loader';
+import SectionLoader from '@/components/full-screen-loader';
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type NavItem } from '@/types';
@@ -575,44 +575,48 @@ const handleSubmit = (e: React.FormEvent) => {
                                         </div>
                                     </div>
 
-                        <div className="max-w-md mx-auto text-center space-y-6 py-4">
-                        <div className="space-y-2">
-                            <h2 className="text-3xl font-extrabold tracking-tight text-foreground">
-                            Results Locked
-                            </h2>
-                            <p className="text-muted-foreground text-sm leading-relaxed">
-                            The results are currently locked due to the following reasons:
-                            </p>
-                        </div>
+                                    <div className="max-w-md mx-auto text-center space-y-6 py-4">
+                                        <div className="space-y-2">
+                                            <h2 className="text-3xl font-extrabold tracking-tight text-foreground">
+                                            Results Locked
+                                            </h2>
+                                            <p className="text-muted-foreground text-sm leading-relaxed">
+                                            The results are currently locked due to the following reasons:
+                                            </p>
+                                        </div>
 
-                        <div className="space-y-4">
-                            {analysisData?.duplecatedWarning && (
-                            <div className="px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/20 shadow-sm shadow-destructive/5">
-                                <p className="text-2xl font-black text-destructive leading-tight tracking-tight">
-                                {analysisData.duplecatedWarning}
-                                </p>
-                            </div>
-                            )}
+                                        <div className="space-y-4">
+                                            {analysisData?.duplecatedWarning && (
+                                            <div className="px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/20 shadow-sm shadow-destructive/5">
+                                                <p className="text-2xl font-black text-destructive leading-tight tracking-tight">
+                                                {analysisData.duplecatedWarning}
+                                                </p>
+                                            </div>
+                                            )}
 
-                            {analysisData?.validationReason && (
-                            <p className="text-lg font-bold text-amber-600 dark:text-amber-400 leading-relaxed">
-                                {analysisData.validationReason}
-                            </p>
-                            )}
-                        </div>
+                                            {analysisData?.validationReason && (
+                                            <p className="text-lg font-bold text-amber-600 dark:text-amber-400 leading-relaxed">
+                                                {analysisData.validationReason}
+                                            </p>
+                                            )}
+                                        </div>
 
-                        {/* Decorative Divider */}
-                        <div className="flex justify-center items-center gap-2 pt-2">
-                            <span className="h-1.5 w-1.5 rounded-full bg-destructive/40 dark:bg-destructive/60"></span>
-                            <span className="h-1 w-12 rounded-full bg-destructive/20 dark:bg-destructive/30"></span>
-                            <span className="h-1.5 w-1.5 rounded-full bg-destructive/40 dark:bg-destructive/60"></span>
-                        </div>
-                        </div>
+                                        {/* Decorative Divider */}
+                                        <div className="flex justify-center items-center gap-2 pt-2">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-destructive/40 dark:bg-destructive/60"></span>
+                                            <span className="h-1 w-12 rounded-full bg-destructive/20 dark:bg-destructive/30"></span>
+                                            <span className="h-1.5 w-1.5 rounded-full bg-destructive/40 dark:bg-destructive/60"></span>
+                                        </div>
+                                    </div>
 
                                 </div>
                             ) : (
                             isLoading ? (
-                                <FullScreenLoader text="Analyzing ticket data, please wait…" />
+                                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-40">
+                                    <SectionLoader text="Analyzing Ticket Logs..."/>
+                                </div>
+
+
                             ) : !analysisData ? (
                                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-40">
                                     <PlaceholderPattern className="w-16 h-16 mb-4" />
@@ -737,7 +741,10 @@ const handleSubmit = (e: React.FormEvent) => {
                                     {/* 2. المجموعة الأساسية (Problem Info) */}
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-muted/20 p-4 rounded-lg border border-border/40">
                                         <CompactResultRow label="Problem Type" value={analysisData.problemType} bold />
-                                        <CompactResultRow label="Escalations" value={`${analysisData.escalationtimes} times`} />
+                                        <CompactResultRow
+                                            label="Escalations"
+                                            value={`${analysisData.escalationtimes} time${analysisData.escalationtimes === 1 ? '' : 's'}`}
+                                        />
                                         {/* التعديل هنا: إضافة تمييز لخانة الـ DSL إذا كان هناك خطأ في الملف */}
                                         <div className={`rounded-md transition-all duration-500 ${
                                             analysisData.validation === "Wrong Usage File"
@@ -776,16 +783,17 @@ const handleSubmit = (e: React.FormEvent) => {
                                                 <span className="text-3xl font-bold">
                                                     {analysisData.compensationGB} GB
                                                 </span>
+                                                {analysisData && Number(analysisData.compensationGB) > 0 && (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Badge variant="secondary" className="font-mono py-0 px-1.5 text-[12px]">
+                                                            {Number(analysisData.compensationGB) * 1024 * 1024 * 1024}
+                                                        </Badge>
+                                                        <span className="text-[11px] text-muted-foreground font-bold italic">
+                                                            Bytes
+                                                        </span>
+                                                    </div>
+                                                )}
 
-                                                {/* جهة اليمين: البادج والكلمة بجانب بعضهما */}
-                                                <div className="flex items-center gap-1.5">
-                                                    <Badge variant="secondary" className="font-mono py-0 px-1.5 text-[12px]">
-                                                        {Number(analysisData.compensationGB) * 1024 * 1024 * 1024}
-                                                    </Badge>
-                                                    <span className="text-[11px] text-muted-foreground font-bold italic">
-                                                        Bytes
-                                                    </span>
-                                                </div>
                                             </div>
                                         </div>
 

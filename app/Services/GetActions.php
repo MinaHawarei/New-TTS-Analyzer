@@ -13,23 +13,37 @@ class GetActions
         $hwoAddLE,
         $specialHandling,
         $tktStillOpen,
-        $is_telephonet
+        $is_telephonet ,
+        $tkt_id ,
+        $satisfaction ,
+        $validDays
 
     ): array {
-
+        $type = strtolower(trim($type));
         $problemType = strtolower(trim($problemType));
         $hwoAddGB    = strtolower(trim($hwoAddGB));
         $hwoAddLE    = strtolower(trim($hwoAddLE));
         $specialHandling = strtolower(trim($specialHandling));
         $tktStillOpen    = filter_var($tktStillOpen, FILTER_VALIDATE_BOOLEAN);
         $is_telephonet    = filter_var($is_telephonet, FILTER_VALIDATE_BOOLEAN);
-
         $actions = [];
 
-        $testMas =  $problemType ."|". $hwoAddLE ."|".$specialHandling ;
-        switch ($type) {
+        if ($validDays < 1) {
+            $hours = ceil($validDays * 24);
+            $validDaysText = $hours . ' ' . ($hours == 1 ? 'Hour' : 'Hours');
+        } else {
+            $days = ceil($validDays);
+            $validDaysText = $days . ' ' . ($days == 1 ? 'Day' : 'Days');
+        }
 
-            case 'TTSCompensation':
+
+        switch ($type) {
+            case 'compensation' :
+                if($problemType == 'outage'){
+                    $ticketType = 'Outage';
+                }else{
+                    $ticketType = 'Ticket';
+                }
                 $GBactions = self::ttsCompensationActions(
                     'GB',
                     $problemType,
@@ -38,7 +52,12 @@ class GetActions
                     $hwoAddGB,
                     $specialHandling,
                     $tktStillOpen,
-                    $is_telephonet
+                    $is_telephonet ,
+                    $tkt_id ,
+                    $satisfaction ,
+                    $validDays,
+                    $validDaysText,
+                    $ticketType
                 );
                 $LEactions = self::ttsCompensationActions(
                     'LE',
@@ -48,60 +67,77 @@ class GetActions
                     $hwoAddLE,
                     $specialHandling,
                     $tktStillOpen,
-                    $is_telephonet
+                    $is_telephonet ,
+                    $tkt_id ,
+                    $satisfaction ,
+                    $validDays,
+                    $validDaysText,
+                    $ticketType
                 );
 
                 $actions = self::mergeActions($GBactions, $LEactions);
-                $actions[] = [
-                'type'       => 'General',
-                'label'      => 'Refuse',
-                'sr_type'    => 'SR',
-                'sr_id'      => '099019020',
-                'sr_name'    => 'CST refuse the Concession',
-                'sla'        => null,
-                'quota'      => $quota,
-                'amount'     => $amount,
-                'expireDays' => null,
-            ];
+                if($quota > 0){
+                    $serviceContent ='has been Refuse to compensated for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$quota.' OR '.$amount.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.' and his phone Number is ';
 
+                    $actions[] = [
+                        'type'       => 'General',
+                        'label'      => 'Refuse',
+                        'sr_type'    => 'SR',
+                        'sr_id'      => '099019020',
+                        'sr_name'    => 'CST refuse the Concession',
+                        'sla'        => null,
+                        'quota'      => $quota,
+                        'amount'     => $amount,
+                        'expireDays' => null,
+                        'serviceContent'=> $serviceContent
+                    ];
+
+                }
                 break;
-
-            case 'AnotherType':
-                // future types handled here
+             default:
+                // nothing
                 break;
         }
+
+
 
         return $actions;
     }
 
-   private static function mergeActions(array $actions1, array $actions2): array
-{
-    $merged = [];
-    $seenIds = [];
+    private static function mergeActions(array $actions1, array $actions2): array
+    {
+        $merged = [];
+        $seenIds = [];
 
-    $allActions = array_merge($actions1, $actions2);
+        $allActions = array_merge($actions1, $actions2);
 
-    foreach ($allActions as $action) {
-        $id = $action['sr_id'];
+        foreach ($allActions as $action) {
+            $id = $action['sr_id'];
 
-        if (isset($seenIds[$id])) {
-            foreach ($merged as $key => $mergedAction) {
-                if ($mergedAction['sr_id'] === $id) {
-                    $merged[$key]['type'] = 'General';
+            if (isset($seenIds[$id])) {
+                foreach ($merged as $key => $mergedAction) {
+                    if ($mergedAction['sr_id'] === $id) {
+                        if (isset($mergedAction['serviceContent']) && isset($action['serviceContent']) &&
+                            $mergedAction['serviceContent'] === $action['serviceContent']) {
 
-                    if ($merged[$key]['label'] !== $action['label']) {
-                        $merged[$key]['label'] = $merged[$key]['label'] . '/' . $action['label'];
+                            $merged[$key]['type'] = 'General';
+
+                            if ($merged[$key]['label'] !== $action['label']) {
+                                $merged[$key]['label'] = $merged[$key]['label'] . '/' . $action['label'];
+                            }
+                        } else {
+                            $merged[] = $action;
+                        }
                     }
                 }
+            } else {
+                $seenIds[$id] = true;
+                $merged[] = $action;
             }
-        } else {
-            $seenIds[$id] = true;
-            $merged[] = $action;
         }
-    }
 
-    return $merged;
-}
+        return $merged;
+    }
 
 
     private static function ttsCompensationActions(
@@ -112,15 +148,26 @@ class GetActions
         $responsibleTeam,
         $specialHandling,
         $tktStillOpen ,
-        $is_telephonet
+        $is_telephonet ,
+        $tkt_id ,
+        $satisfaction ,
+        $validDays,
+        $validDaysText ,
+        $ticketType
     ): array {
-
+        $serviceContent = null;
         $actions = [];
+        if($satisfaction == 0){
+            $satisfaction = 'without satisfaction';
+        }else{
+            $satisfaction ='and satisfaction : '.$satisfaction ;
+        }
         if ($responsibleTeam === 'not eligible') {
+
             if($quota == 0){
                 $actions[] = [
                 'type'       => 'Not Eligible',
-                'label'      => 'Inquiry',
+                'label'      => 'Not Eligible',
                 'sr_type'    => 'SR',
                 'sr_id'      => '100034002',
                 'sr_name'    => 'Technical Concession',
@@ -128,6 +175,7 @@ class GetActions
                 'quota'      => null,
                 'amount'     => null,
                 'expireDays' => null,
+                'serviceContent'=> 'not eligible for compensation for '.$ticketType.' ID: '. $tkt_id . ' Customer confirmed satisfaction. Customer phone number is '
                 ];
                 $actions[] = [
                     'type'       => 'Not Eligible',
@@ -139,15 +187,37 @@ class GetActions
                     'quota'      => null,
                     'amount'     => null,
                     'expireDays' => null,
+                    'serviceContent'=> 'not eligible for compensation for '.$ticketType.' ID: '. $tkt_id . ', and the customer is not satisfied and requested to raise a complaint. Customer phone number is '
+
                 ];
             }
 
         }elseif($responsibleTeam === 'agent on spot'){
             $sr_id = '100034007' ;
             $sr_name = "Tech Concession On Spot-Approved";
+
+
             if($tktStillOpen){
                 $sr_id = '100034026' ;
                 $sr_name = "Tech Concession On Spot-Ticket open";
+
+                if($type == 'LE'){
+                    $serviceContent ='has been compensated for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$amount.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.', Problem solved but ticket still open , and his phone Number is ';
+                }else{
+                    $serviceContent ='has been compensated for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$quota.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.', Problem solved but ticket still open , and his phone Number is ';
+                }
+
+            }else{
+                if($validDays <= 0.5){
+                    $sr_name = 'Outage from 6h to 12h– On Spot';
+                }
+                if($type == 'LE'){
+                    $serviceContent ='has been compensated for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$amount.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.' and his phone Number is ';
+
+                }else{
+                    $serviceContent ='has been compensated for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$quota.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.' and his phone Number is ';
+                }
+
             }
             $actions[] = [
                 'type'       => $type,
@@ -159,8 +229,10 @@ class GetActions
                 'quota'      => $quota,
                 'amount'     => $amount,
                 'expireDays' => null,
+                'serviceContent'=> $serviceContent
             ];
             if($specialHandling === 'clmle agent on spot'){
+                $serviceContent ='asked for compensation regarding '.$ticketType.' ID :  '.$tkt_id.'for the Valid period due for compensation , which is: '.$validDaysText.'The compensation Satisfaction Gigabytes has been Added with : '.$satisfaction.' and amount with a value of '.$amount.' need to be added, and his phone Number is ';
                 $actions[] = [
                 'type'       => 'LE',
                 'label'      => 'Satisfaction Quota',
@@ -171,9 +243,37 @@ class GetActions
                 'quota'      => $quota,
                 'amount'     => $amount,
                 'expireDays' => null,
+                'serviceContent'=> $serviceContent
+                ];
+            }elseif($specialHandling === 'clmgb agent on spot'){
+                $serviceContent ='asked for compensation regarding '.$ticketType.' ID :  '.$tkt_id.'for the Valid period due for compensation , which is: '.$validDaysText.'The compensation Amount in EGB has been Added with : '.$amount.' and Satisfaction Gigabytes with a value of '.$satisfaction.' need to be added, and his phone Number is ';
+                $actions[] = [
+                'type'       => 'LE',
+                'label'      => 'Satisfaction Quota',
+                'sr_type'    => 'SR',
+                'sr_id'      => '100065001',
+                'sr_name'    => 'Satisfaction Quota - action Done',
+                'sla'        => null,
+                'quota'      => $quota,
+                'amount'     => $amount,
+                'expireDays' => null,
+                'serviceContent'=> $serviceContent
                 ];
             }
         }elseif($responsibleTeam === 'clm team sla 15 min' || $responsibleTeam === 'clm team & billing sla 75 min (8am:9pm except friday 2pm:9pm)'){
+
+            if($type == 'LE'){
+                $serviceContent ='asked for compensation regarding '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$amount.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.' and his phone Number is ';
+            }else{
+                $serviceContent ='asked for compensation regarding '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$quota.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.' and his phone Number is ';
+            }
+
+            if($specialHandling === 'clmle agent on spot'){
+                $serviceContent ='asked for compensation regarding '.$ticketType.' ID : '.$tkt_id.'for the Valid period due for compensation , which is: '.$validDaysText.'The compensation Satisfaction Gigabytes has been Added with : '.$satisfaction.' and amount with a value of '.$amount.' need to be added, and his phone Number is ';
+            }elseif($specialHandling === 'clmgb agent on spot'){
+                $serviceContent ='asked for compensation regarding '.$ticketType.' ID : '.$tkt_id.'for the Valid period due for compensation , which is: '.$validDaysText.'The compensation Amount in EGB has been Added with : '.$amount.' and Satisfaction Gigabytes with a value of '.$satisfaction.' need to be added, and his phone Number is ';
+            }
+
             if($responsibleTeam === 'clm team sla 15 min'){
                 $sla = '15 Minuts';
             }else{
@@ -315,11 +415,17 @@ class GetActions
                 'quota'      => $quota,
                 'amount'     => $amount,
                 'expireDays' => 30,
+                'serviceContent'=> $serviceContent
             ];
 
         }
         if($responsibleTeam != 'agent on spot' && $tktStillOpen){
-             $actions[] = [
+             if($type == 'LE'){
+                $serviceContent ='has been Asked CLM Team to compensat CST for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$amount.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.', Problem solved but ticket still open , and his phone Number is ';
+            }else{
+                $serviceContent ='has been Asked CLM Team to compensat CST for his '.$ticketType.' ID :  '.$tkt_id.' with a value of '.$quota.' '.$satisfaction.' for the Valid period due for compensation , which is: '.$validDaysText.', Problem solved but ticket still open , and his phone Number is ';
+            }
+            $actions[] = [
                 'type'       => $type,
                 'label'      => 'ticket still open',
                 'sr_type'    => 'SR',
@@ -329,6 +435,7 @@ class GetActions
                 'quota'      => $quota,
                 'amount'     => $amount,
                 'expireDays' => 30,
+                'serviceContent'=> $serviceContent
                 ];
         }
 

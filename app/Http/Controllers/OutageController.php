@@ -11,6 +11,8 @@ use App\Models\Outage\OutageData;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Services\GetActions;
+
 
 class OutageController extends Controller
 {
@@ -29,6 +31,7 @@ class OutageController extends Controller
         $hwoAddLE = '';
         $satisfaction = '';
         $total_days = '';
+        $warnings = [];
 
         $selectFollowUp = $request->input('FollowUp');
         if($selectFollowUp){
@@ -71,6 +74,9 @@ class OutageController extends Controller
             foreach($outages as $index => $item){
                 $From = Carbon::createFromFormat('Y-m-d\TH:i', $item['From']);
                 $To = Carbon::createFromFormat('Y-m-d\TH:i', $item['To']);
+                if($item['outageType'] == 'Major Fault - Down'){
+                    $item['outageType'] = 'Major Fault';
+                }
                 $singleData  = new OutageData ([
                 'From' => $From,
                 'Planned_from' => $From,
@@ -236,6 +242,7 @@ class OutageController extends Controller
 
 
 
+        $tkt_id = '';
 
         foreach($orgData as $item){
             $validation = OutageValidation::validate($data ,$service_number, $item,  $usage);
@@ -245,13 +252,16 @@ class OutageController extends Controller
             $test = $validation['ValidDuration'] ;
             $totalDuration = $this->culcTheSeconds($validation['totalDuration']);
             $validDuration = $this->culcTheSeconds($validation['ValidDuration']);
-            //$startDate = $validation['startDate'];
-            //$closeDate = $validation['closeDate'];
+            $tkt_id .= $item->ID . ' - ';
+            $wrongDSLno = false;
             $problemType = $validation['problemType'];
             if($validation['DSLno'] != ''){
                 $DSLno = $validation['DSLno'];
+                if($DSLno != $service_number){
+                $wrongDSLno = true;
+            }
             }else{
-                $DSLno = '';
+                $DSLno = $service_number;
             }
 
             if ($validation['validation'] == true) {
@@ -280,14 +290,19 @@ class OutageController extends Controller
 
             $formattedData = '';
 
+            $usageCollectionData = collect($filteredUsage)->map(function ($data) {
+                $isHighUsage = ($data['color'] === 'red');
+                return [
+                    'date'    => $data['date'],
+                    'usage'   => number_format($data['total_usage'], 2),
+                    'unit'    => 'GB',
+                    'color'   => $data['color'],
+                    'note'    => $data['note'] ?? null,
+                    'is_high'  => $isHighUsage,
+                ];
+            })->reverse()->values()->all(); // إضافة values() تحولها لمصفوفة عادية [{}, {}, {}]
 
-            foreach ($filteredUsage as $data) {
-                $color = $data['color'];
-                $note = $data['note'] ?? ' ';
-                $formattedData .= "<span style='color: $color;'>".$data['date'].':......';
-                $formattedData .= ''.number_format($data['total_usage'], 2).' GB';
-                $formattedData .= '  '.$note.' </span><br>';
-            }
+
             // breifing for 3/2/2025
             if ($validation['totalDuration'] < 86400) {
                 $compensation['compensationLE'] = 0;
@@ -298,13 +313,15 @@ class OutageController extends Controller
 
             if ($mainpackage_is_empty) {
                 if($hasUsagFile){
-                    $readablemainpackage .= '<br><span class="blinking" style="display: inline-block; margin-right: 6px; padding: 4px 8px; background-color: #ff0000ff; color: #212529; font-size: 1.1em; border-radius: 4px;">
-                        ⚠️ Package manually selected – CDR usage file is empty
-                        </span>';
+                    $warnings[] = [
+                        'level' => 2,
+                        'message' => 'Package manually selected – CDR usage file is empty'
+                    ];
                 }else{
-                    $readablemainpackage .= '<br><span class="blinking" style="display: inline-block; margin-right: 6px; padding: 4px 8px; background-color: #ffffff; color: #212529; font-size: 1.1em; border-radius: 4px;">
-                        ⚠️ Package manually selected – CDR usage file missing
-                        </span>';
+                    $warnings[] = [
+                        'level' => 2,
+                        'message' => 'Package manually selected – CDR usage file missing'
+                    ];
                 }
             }
 
@@ -319,15 +336,15 @@ class OutageController extends Controller
             }
 
             if($compensation['compensationGB'] != 0 && $validation['totalDuration'] > 43200 ){
-                $satisfaction = '( Double GB as Satisfaction )';
+                //$satisfaction = '( Double GB as Satisfaction )';
                 $satisfactionGB = $compensation['compensationGB'];
             }else{
-                $satisfaction = '';
+                //$satisfaction = '';
                 $satisfactionGB = 0 ;
             }
 
             if($validation['ValidDuration'] <43200 && $validation['ValidDuration'] > 0 ){
-                $satisfaction = '( without Satisfaction )';
+                //$satisfaction = '( without Satisfaction )';
                 $satisfactionGB = 0 ;
             }
 
@@ -392,12 +409,26 @@ class OutageController extends Controller
 
 
         }
-
+        $tkt_id = rtrim($tkt_id, ' - ');
         if($total_validation){
             $validationMassege = 'valid';
             $validatioColor = 'green';
 
         }
+        if($wrongDSLno){
+            $validationMassege = 'Wrong Usage File';
+            $validatioColor = 'red';
+            $satisfaction = 0;
+            $validationReason = 'The DSL number provided does not match the CDR usage file.';
+            $formattedData = '';
+            $total_GB = 0;
+            $total_LE = 0;
+            $total_days = 0;
+            $hwoAddGB = '';
+            $hwoAddLE = '';
+            $satisfaction = 0;
+        }
+
 
         if($ineligibleDays > 0 && $validationMassege == 'valid' && $total_days > $ineligibleDays){
             $ineligibleDays_compensation = CulcTheDuration::getculcTheDuration($mainpackage, $ineligibleDays , $validationMassege);
@@ -417,20 +448,19 @@ class OutageController extends Controller
                 $total_days = 0;
                 $hwoAddGB = '';
                 $hwoAddLE = '';
-                $satisfaction = '';
+                $satisfaction = 0;
             }
 
         }
 
-        $total_days = $this->formatDuration($total_days );
-
+        $total_days = $total_days/86400;
 
 
         if($total_satisfaction!= 0){
-            $satisfaction = '( and '. $total_satisfaction . ' GB as Satisfaction )';
+            $satisfaction = $total_satisfaction;
 
         }else{
-            $satisfaction = '';
+            $satisfaction = 0;
         }
         $TotalDiffInSeconds = $startDate->diffInSeconds($closeDate);
         $totalDuration = $this->culcTheSeconds($TotalDiffInSeconds);
@@ -469,7 +499,7 @@ class OutageController extends Controller
             $total_LE = 0;
             $hwoAddGB = '';
             $hwoAddLE = '';
-            $satisfaction = '';
+            $satisfaction = 0;
             $total_days = '';
 
         }
@@ -477,11 +507,12 @@ class OutageController extends Controller
 
 
         $responsbleTeam = '';
+        $is_telephonet = false;
+
 
 
         if(str_contains($compensation['packageName'], 'Telephonet')){
-
-            $responsbleTeam = 'CLM Telephonet';
+            $is_telephonet = true;
         }
         $specialHandling = '' ;
         if($hwoAddLE == ' CLM team SLA 15 min' && $hwoAddGB == ' Agent on spot'){
@@ -489,6 +520,22 @@ class OutageController extends Controller
         }elseif($hwoAddLE == ' Agent on spot' && $hwoAddGB == ' CLM team SLA 15 min'){
             $specialHandling = 'CLMGB Agent on spot' ;
         }
+
+        $available_actions = GetActions::GetActions(
+            'compensation',
+            'outage' ,
+            $total_LE ,
+            $total_GB,
+            $hwoAddGB ,
+            $hwoAddLE ,
+            $specialHandling,
+            false,
+            $is_telephonet ,
+            $tkt_id ,
+            $satisfaction ,
+            $total_days
+
+        );
 
         return response()->json([
 
@@ -498,10 +545,10 @@ class OutageController extends Controller
             'totalDuration' => "{$totalDuration['days']} days, {$totalDuration['hr']} hours, and {$totalDuration['min']} minutes",
             'validDuration' => $total_days,
             'mainpackage' => $readablemainpackage,
-            'compensationGB' => "{$total_GB} GB",
+            'compensationGB' => $total_GB,
             'hwoAddGB' => $hwoAddGB,
             'satisfaction' => $satisfaction,
-            'compensationLE' => "{$total_LE} LE",
+            'compensationLE' => $total_LE,
             'hwoAddLE' => $hwoAddLE,
             'satisfactionLE' => $satisfaction,
             'validation' => $validationMassege,
@@ -515,6 +562,10 @@ class OutageController extends Controller
             'orgData' => $orgData,
             'responsbleTeam' => $responsbleTeam,
             'specialHandling' => $specialHandling,
+            'warnings' => $warnings,
+            'available_actions' => $available_actions,
+            'usageCollectionData' => $usageCollectionData,
+
 
         ]);
     }

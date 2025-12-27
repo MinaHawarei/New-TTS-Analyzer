@@ -9,7 +9,9 @@ class OutageValidation
 {
     public static function validate($data, $service_number ,$orgData, $usage )
     {
-        $DSLno = '';
+
+        $firstDetail = reset($usage);
+        $DSLno = $firstDetail['dsl_number'] ?? '';
         $totalDuration = $orgData->Duration;
         $problemType = '' ;
 
@@ -130,6 +132,7 @@ class OutageValidation
             $endx = $end->endOfDay();
 
             $ValidDurationInDays = $ValidDuration / 86400;
+
             if($needToUsage){
 
 

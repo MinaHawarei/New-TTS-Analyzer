@@ -17,7 +17,7 @@ export function HandleAction({
     setIsOpen,
     data,
     ticketId,
-    dslNumber = '' // أضف هذا السطر
+    dslNumber = ''
 }: HandleActionProps) {
     const [formData, setFormData] = useState({
         dslNumber: '',
@@ -80,15 +80,7 @@ export function HandleAction({
 
         const formattedDsl = "FBB" + (formData.dslNumber.startsWith('0') ? formData.dslNumber.substring(1) : formData.dslNumber);
 
-        let serviceContent = '';
-
-        if (action.sr_id === '101024018') {
-            serviceContent = `Customer : ${formData.cstName} has requested a We Mobile adjustment for ticket ID : ${ticketId} , with ${action.quota} GB valid for ${action.expireDays} days on his phone number ${formData.mobileNumber}.`;
-        } else if (action.sr_id === 'SR002') {
-            serviceContent = `Customer : ${formData.cstName} has requested a We Mobile compensation for ticket ID : ${ticketId} , with ${action.quota} GB valid for ${action.expireDays} days on his phone number ${formData.mobileNumber}.`;
-        } else {
-            serviceContent = `Customer : ${formData.cstName} has requested a We Mobile adjustment for ticket ID : ${ticketId} , with ${action.quota} GB valid for ${action.expireDays} days on his phone number ${formData.mobileNumber}.`;
-        }
+        let serviceContent = `Customer : ${formData.cstName} , ${action.serviceContent}${formData.mobileNumber}`;
 
         if (action.sr_type === 'TT') {
             const url = `https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage`

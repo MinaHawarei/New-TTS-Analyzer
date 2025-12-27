@@ -217,7 +217,7 @@ class CompensationController extends Controller
         if ($mainpackage_is_empty) {
             if($hasUsagFile){
                 $warnings[] = [
-                    'level' => 2,
+                    'level' => 1,
                     'message' => 'Package manually selected – CDR usage file is empty'
                 ];
             }else{
@@ -376,7 +376,7 @@ class CompensationController extends Controller
 
         switch ($validationMassege) {
             case 'Valid':
-                $LogsDescription = 'Valid tkt with Valid days '.$validDurationinDayes. ' and ' . $compensation['compensationGB'] . ' GB ' .$compensation['hwoAddGB'] . ' and ' . $compensation['compensationLE'] . ' LE ' . $compensation['hwoAddLE'] . ' and usage is ' . $formattedData;
+                $LogsDescription = 'Valid tkt with Valid days '.$validDurationinDayes. ' Days and ' . $compensation['compensationGB'] . ' GB ' .$compensation['hwoAddGB'] . ' and ' . $compensation['compensationLE'] . ' LE ' . $compensation['hwoAddLE'] . ' and usage is ' . $formattedData;
                 break;
 
             case 'Not Valid':
@@ -447,7 +447,7 @@ class CompensationController extends Controller
         }
 
         $available_actions = GetActions::GetActions(
-            'TTSCompensation' ,
+            'compensation',
             $problemType ,
             $compensation['compensationLE'] ,
             $compensation['compensationGB'],
@@ -455,7 +455,11 @@ class CompensationController extends Controller
             $compensation['hwoAddLE'] ,
             $specialHandling,
             $validation['tktStillOpen'],
-            $is_telephonet
+            $is_telephonet,
+            $tkt_id,
+            $compensation['compensationGB'],
+            $validDurationinDayes
+
 
         );
 

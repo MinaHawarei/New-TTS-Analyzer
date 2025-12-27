@@ -349,6 +349,7 @@ class AnalyzeController extends Controller
             'bss_service_code' => $bss_service_code,
             'sla' => '15 Minutes',
         ];
+        $serviceContent = 'has requested a We Mobile adjustment for ticket ID : '.$tkt_id.' , with '.$weMobilecompansationQouta.' GB valid for '.$weMobilecompansationExpireDays.' days on his phone number ';
 
         $available_actions = [
             [
@@ -361,6 +362,7 @@ class AnalyzeController extends Controller
                 'quota' => $weMobilecompansationQouta,
                 'amount' => null,
                 'expireDays' => $weMobilecompansationExpireDays,
+                'serviceContent'=> $serviceContent
             ]
         ];
 
